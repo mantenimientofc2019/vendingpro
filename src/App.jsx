@@ -1,22 +1,9 @@
-import { useState } from "react";
-
-const INITIAL_USERS = [
-  { id: 1, username: "admin", password: "admin123", name: "Administrador", role: "admin" },
-  { id: 2, username: "tecnico1", password: "tec123", name: "Carlos Martínez", role: "tecnico" },
-  { id: 3, username: "tecnico2", password: "tec456", name: "Ana López", role: "tecnico" },
-];
-const INITIAL_MACHINES = [
-  { id: "VM-001", location: "Oficina Central - Planta 1" },
-  { id: "VM-002", location: "Centro Comercial Sur" },
-  { id: "VM-003", location: "Hospital General" },
-  { id: "VM-004", location: "Estación de Tren" },
-  { id: "VM-005", location: "Universidad Campus Norte" },
-];
-const INITIAL_PRODUCTS = [
-  "Agua 50cl","Coca-Cola 33cl","Nestea 33cl","Fanta Naranja 33cl",
-  "Café Solo","Café con Leche","Chocolate","Chips Lay's",
-  "Galletas María","Barrita Energética","Zumo Naranja","Agua con Gas",
-];
+import { useState, useEffect } from "react";
+import { db } from "./firebase";
+import {
+  collection, doc, getDocs, setDoc, updateDoc,
+  deleteDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp
+} from "firebase/firestore";
 
 const SHEETS_URL = "https://script.google.com/macros/s/AKfycbxxxYXTyiRmp85RFpwGmmuUqQsi8UZKueo1asytWdtyuMbU4Oj7JYa3EGrG9Pzf8O9V/exec";
 
@@ -42,7 +29,7 @@ const Icon = ({ name, size = 18 }) => {
     edit: <><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
     trash: <><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></>,
     box: <><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></>,
-    settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>,
+    spinner: <><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -93,6 +80,9 @@ const css = `
   .sb-toggle:hover { color:var(--acc); border-color:var(--acc); }
   .main { margin-left:var(--sb-w-col); transition:margin-left 0.25s cubic-bezier(.4,0,.2,1); padding:24px 28px; min-height:100vh; }
   .main.shifted { margin-left:var(--sb-w); }
+  .loading-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px; background:var(--bg); }
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { from{transform:rotate(0deg)}to{transform:rotate(360deg)} }
   .login-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; background:radial-gradient(ellipse at 30% 50%,#0d1f3c,var(--bg) 65%); }
   .login-card { background:var(--surf); border:1px solid var(--bdr); border-radius:18px; padding:44px 36px; width:400px; box-shadow:0 24px 70px rgba(0,0,0,0.5); animation:up .4s ease; }
   @keyframes up { from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)} }
@@ -173,47 +163,109 @@ const css = `
   .dk { color:var(--mut); }
   .dv { font-weight:500; max-width:58%; text-align:right; }
   .sbox { background:var(--surf2); border-radius:9px; padding:14px; margin-bottom:14px; }
-  .demo-box { margin-top:18px; padding:13px; background:rgba(255,255,255,.03); border-radius:9px; border:1px solid var(--bdr); }
   .tag { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:var(--surf2); border:1px solid var(--bdr); border-radius:6px; font-size:12px; }
   .tag-del { background:none; border:none; color:var(--mut); cursor:pointer; padding:0; display:flex; align-items:center; transition:color .15s; }
   .tag-del:hover { color:var(--red); }
   .actions { display:flex; gap:6px; }
 `;
 
+// ── SEED inicial en Firestore si no hay datos ──────────────────────────────
+const SEED_USERS = [
+  { username:"admin", password:"admin123", name:"Administrador", role:"admin" },
+  { username:"tecnico1", password:"tec123", name:"Carlos Martínez", role:"tecnico" },
+  { username:"tecnico2", password:"tec456", name:"Ana López", role:"tecnico" },
+];
+const SEED_MACHINES = [
+  { id:"VM-001", location:"Oficina Central - Planta 1" },
+  { id:"VM-002", location:"Centro Comercial Sur" },
+  { id:"VM-003", location:"Hospital General" },
+];
+const SEED_PRODUCTS = [
+  "Agua 50cl","Coca-Cola 33cl","Nestea 33cl","Fanta Naranja 33cl",
+  "Café Solo","Café con Leche","Chocolate","Chips Lay's",
+  "Galletas María","Barrita Energética","Zumo Naranja","Agua con Gas",
+];
+
+async function seedIfEmpty() {
+  const usersSnap = await getDocs(collection(db, "users"));
+  if (!usersSnap.empty) return;
+  for (const u of SEED_USERS) {
+    await addDoc(collection(db, "users"), u);
+  }
+  for (const m of SEED_MACHINES) {
+    await setDoc(doc(db, "machines", m.id), { location: m.location });
+  }
+  await setDoc(doc(db, "config", "products"), { list: SEED_PRODUCTS });
+}
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("dashboard");
   const [visits, setVisits] = useState([]);
-  const [users, setUsers] = useState(INITIAL_USERS);
-  const [machines, setMachines] = useState(INITIAL_MACHINES);
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [users, setUsers] = useState([]);
+  const [machines, setMachines] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [sbOpen, setSbOpen] = useState(false);
-  const [modal, setModal] = useState(null); // { type, data }
+  const [modal, setModal] = useState(null);
   const [detailVisit, setDetailVisit] = useState(null);
   const [toast, setToast] = useState(null);
   const [fMachine, setFMachine] = useState("");
   const [fTech, setFTech] = useState("");
   const [fDate, setFDate] = useState("");
-  const [loginData, setLoginData] = useState({ username: "", password: "" });
+  const [loginData, setLoginData] = useState({ username:"", password:"" });
   const [loginErr, setLoginErr] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const notify = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3200); };
 
-  const doLogin = () => {
-    const u = users.find(u => u.username === loginData.username && u.password === loginData.password);
-    if (u) { setUser(u); setPage(u.role === "admin" ? "dashboard" : "mis-visitas"); }
-    else setLoginErr("Usuario o contraseña incorrectos");
+  // Cargar datos iniciales desde Firestore
+  useEffect(() => {
+    seedIfEmpty().then(() => {
+      // Escuchar usuarios
+      const unsubUsers = onSnapshot(collection(db, "users"), snap => {
+        setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+      // Escuchar máquinas
+      const unsubMachines = onSnapshot(collection(db, "machines"), snap => {
+        setMachines(snap.docs.map(d => ({ id: d.id, location: d.data().location })).sort((a,b)=>a.id.localeCompare(b.id)));
+      });
+      // Escuchar productos
+      const unsubProducts = onSnapshot(doc(db, "config", "products"), snap => {
+        if (snap.exists()) setProducts(snap.data().list || []);
+      });
+      // Escuchar visitas
+      const unsubVisits = onSnapshot(query(collection(db, "visits"), orderBy("createdAt", "desc")), snap => {
+        setVisits(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+      setLoading(false);
+      return () => { unsubUsers(); unsubMachines(); unsubProducts(); unsubVisits(); };
+    });
+  }, []);
+
+  const doLogin = async () => {
+    setLoginLoading(true);
+    const found = users.find(u => u.username === loginData.username && u.password === loginData.password);
+    if (found) {
+      setUser(found);
+      setPage(found.role === "admin" ? "dashboard" : "mis-visitas");
+      setLoginErr("");
+    } else {
+      setLoginErr("Usuario o contraseña incorrectos");
+    }
+    setLoginLoading(false);
   };
+
   const doLogout = () => { setUser(null); setPage("dashboard"); setSbOpen(false); };
 
   const addVisit = async (v) => {
-    const newVisit = { ...v, id: Date.now(), createdAt: new Date().toISOString() };
-    setVisits(p => [newVisit, ...p]);
+    const newVisit = { ...v, createdAt: new Date().toISOString() };
+    const docRef = await addDoc(collection(db, "visits"), newVisit);
     setPage("mis-visitas");
     notify("Visita guardada — sincronizando...");
     const machine = machines.find(m => m.id === newVisit.machineId);
     const payload = {
-      id: newVisit.id,
+      id: docRef.id,
       fecha: new Date(newVisit.createdAt).toLocaleString("es-ES"),
       tecnico: newVisit.techName,
       maquina: newVisit.machineId,
@@ -229,9 +281,53 @@ export default function App() {
       await fetch(SHEETS_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
       notify("✓ Visita sincronizada con Google Sheets");
     } catch {
-      notify("⚠ Guardada localmente — sin conexión a Sheets");
+      notify("⚠ Guardada en Firebase — sin conexión a Sheets");
     }
   };
+
+  // Gestión usuarios
+  const saveUser = async (f, id) => {
+    if (id) await updateDoc(doc(db, "users", id), f);
+    else await addDoc(collection(db, "users"), f);
+    setModal(null);
+    notify(id ? "Usuario actualizado" : "Usuario creado");
+  };
+  const deleteUser = async (id) => {
+    if (window.confirm("¿Eliminar este usuario?")) {
+      await deleteDoc(doc(db, "users", id));
+      notify("Usuario eliminado");
+    }
+  };
+
+  // Gestión máquinas
+  const saveMachine = async (f, id) => {
+    if (id) await updateDoc(doc(db, "machines", id), { location: f.location });
+    else await setDoc(doc(db, "machines", f.id), { location: f.location });
+    setModal(null);
+    notify(id ? "Máquina actualizada" : "Máquina añadida");
+  };
+  const deleteMachine = async (id) => {
+    if (window.confirm("¿Eliminar la máquina "+id+"?")) {
+      await deleteDoc(doc(db, "machines", id));
+      notify("Máquina eliminada");
+    }
+  };
+
+  // Gestión productos
+  const saveProducts = async (list) => {
+    await setDoc(doc(db, "config", "products"), { list });
+    notify("Productos actualizados");
+  };
+
+  if (loading) return (
+    <>
+      <style>{css}</style>
+      <div className="loading-screen">
+        <div className="spin" style={{color:"var(--acc)"}}><Icon name="spinner" size={32}/></div>
+        <div style={{color:"var(--mut)",fontSize:14}}>Cargando VendingPro...</div>
+      </div>
+    </>
+  );
 
   if (!user) return (
     <>
@@ -253,25 +349,19 @@ export default function App() {
               onChange={e => setLoginData({...loginData, password:e.target.value})}
               onKeyDown={e => e.key==="Enter" && doLogin()} />
           </div>
-          <button className="btn btn-p btn-full" style={{marginTop:4}} onClick={doLogin}>Iniciar Sesión</button>
-          <div className="demo-box">
-            <div style={{fontSize:10,color:"var(--mut)",marginBottom:7,fontWeight:700,textTransform:"uppercase",letterSpacing:".8px"}}>Cuentas demo</div>
-            <div style={{fontSize:12,fontFamily:"var(--mono)",lineHeight:1.9}}>
-              <div><span style={{color:"#a78bfa"}}>admin</span> / admin123 — Administrador</div>
-              <div><span style={{color:"var(--acc)"}}>tecnico1</span> / tec123 — Técnico</div>
-              <div><span style={{color:"var(--acc)"}}>tecnico2</span> / tec456 — Técnico</div>
-            </div>
-          </div>
+          <button className="btn btn-p btn-full" style={{marginTop:4}} onClick={doLogin} disabled={loginLoading}>
+            {loginLoading ? "Entrando..." : "Iniciar Sesión"}
+          </button>
         </div>
       </div>
     </>
   );
 
   const navAdmin = [
-    { section: "Principal" },
+    { section:"Principal" },
     { id:"dashboard", label:"Dashboard", icon:"dashboard" },
     { id:"visits", label:"Todas las Visitas", icon:"list" },
-    { section: "Configuración" },
+    { section:"Configuración" },
     { id:"users", label:"Usuarios", icon:"users" },
     { id:"mgmachines", label:"Máquinas", icon:"machine" },
     { id:"mgproducts", label:"Productos", icon:"box" },
@@ -296,18 +386,16 @@ export default function App() {
   return (
     <>
       <style>{css}</style>
-
-      <button className="sb-toggle" onClick={()=>setSbOpen(o=>!o)} title={sbOpen?"Cerrar menú":"Abrir menú"}>
+      <button className="sb-toggle" onClick={()=>setSbOpen(o=>!o)}>
         <Icon name={sbOpen?"close":"menu"} size={16}/>
       </button>
-
       <aside className={"sb"+(sbOpen?" open":"")}>
         <div className="sb-head">
           <div className="sb-logo">🏧</div>
           <div className="sb-brand">Vending<span>Pro</span></div>
         </div>
         <nav className="sb-nav">
-          {nav.map((item, i) =>
+          {nav.map((item,i) =>
             item.section
               ? <div key={i} className="nav-section-label">{item.section}</div>
               : <button key={item.id} className={"nav-item"+(page===item.id?" active":"")}
@@ -328,12 +416,10 @@ export default function App() {
           </button>
         </div>
       </aside>
-
       {sbOpen && <div onClick={()=>setSbOpen(false)} style={{position:"fixed",inset:0,zIndex:99,background:"rgba(0,0,0,.4)"}}/>}
 
       <main className={"main"+(sbOpen?" shifted":"")}>
 
-        {/* ── TÉCNICO: Mis visitas ── */}
         {page==="mis-visitas" && user.role==="tecnico" && (
           <>
             <div className="ph">
@@ -344,7 +430,6 @@ export default function App() {
           </>
         )}
 
-        {/* ── TÉCNICO: Nueva visita ── */}
         {page==="nueva-visita" && user.role==="tecnico" && (
           <>
             <button className="back-btn" onClick={()=>setPage("mis-visitas")}><Icon name="back" size={14}/>Volver a Mis Visitas</button>
@@ -352,24 +437,19 @@ export default function App() {
           </>
         )}
 
-        {/* ── ADMIN: Dashboard ── */}
         {page==="dashboard" && user.role==="admin" && (
           <>
             <div className="ph"><div className="ph-left"><h2>Dashboard</h2><p>Resumen del sistema de gestión</p></div></div>
             <div className="stats">
               {[{v:visits.length,l:"Total Visitas",i:"visit"},{v:totalRec.toFixed(2)+" €",l:"Total Recaudado",i:"money"},{v:monthCount,l:"Visitas Este Mes",i:"machine"},{v:incCount,l:"Incidencias",i:"alert"}].map(s=>(
-                <div className="sc" key={s.l}>
-                  <div className="sc-v">{s.v}</div><div className="sc-l">{s.l}</div>
-                  <div className="sc-i"><Icon name={s.i} size={26}/></div>
-                </div>
+                <div className="sc" key={s.l}><div className="sc-v">{s.v}</div><div className="sc-l">{s.l}</div><div className="sc-i"><Icon name={s.i} size={26}/></div></div>
               ))}
             </div>
-            <div className="sync-bar"><div className="dot"/><span style={{color:"var(--grn)",fontWeight:600}}>Google Sheets sincronizado</span><span style={{color:"var(--mut)"}}>— {visits.length} registros</span></div>
+            <div className="sync-bar"><div className="dot"/><span style={{color:"var(--grn)",fontWeight:600}}>Firebase + Google Sheets activos</span><span style={{color:"var(--mut)"}}>— {visits.length} registros</span></div>
             <VisitTable visits={visits.slice(0,8)} onView={setDetailVisit} compact/>
           </>
         )}
 
-        {/* ── ADMIN: Todas las visitas ── */}
         {page==="visits" && user.role==="admin" && (
           <>
             <div className="ph"><div className="ph-left"><h2>Todas las Visitas</h2><p>{visits.length} registros totales</p></div></div>
@@ -391,7 +471,6 @@ export default function App() {
           </>
         )}
 
-        {/* ── ADMIN: Usuarios ── */}
         {page==="users" && user.role==="admin" && (
           <>
             <div className="ph">
@@ -412,7 +491,7 @@ export default function App() {
                         <td>
                           <div className="actions">
                             <button className="btn btn-s" style={{padding:"5px 10px",fontSize:12}} onClick={()=>setModal({type:"user",data:u})}><Icon name="edit" size={12}/>Editar</button>
-                            {u.id!==user.id && <button className="btn btn-d" style={{padding:"5px 10px",fontSize:12}} onClick={()=>{if(window.confirm("¿Eliminar usuario "+u.name+"?"))setUsers(p=>p.filter(x=>x.id!==u.id));}}><Icon name="trash" size={12}/></button>}
+                            {u.id!==user.id&&<button className="btn btn-d" style={{padding:"5px 10px",fontSize:12}} onClick={()=>deleteUser(u.id)}><Icon name="trash" size={12}/></button>}
                           </div>
                         </td>
                       </tr>
@@ -424,7 +503,6 @@ export default function App() {
           </>
         )}
 
-        {/* ── ADMIN: Máquinas ── */}
         {page==="mgmachines" && user.role==="admin" && (
           <>
             <div className="ph">
@@ -446,7 +524,7 @@ export default function App() {
                           <td>
                             <div className="actions">
                               <button className="btn btn-s" style={{padding:"5px 10px",fontSize:12}} onClick={()=>setModal({type:"machine",data:m})}><Icon name="edit" size={12}/>Editar</button>
-                              <button className="btn btn-d" style={{padding:"5px 10px",fontSize:12}} onClick={()=>{if(window.confirm("¿Eliminar máquina "+m.id+"?"))setMachines(p=>p.filter(x=>x.id!==m.id));}}><Icon name="trash" size={12}/></button>
+                              <button className="btn btn-d" style={{padding:"5px 10px",fontSize:12}} onClick={()=>deleteMachine(m.id)}><Icon name="trash" size={12}/></button>
                             </div>
                           </td>
                         </tr>
@@ -458,38 +536,19 @@ export default function App() {
           </>
         )}
 
-        {/* ── ADMIN: Productos ── */}
         {page==="mgproducts" && user.role==="admin" && (
-          <ProductsManager products={products} setProducts={setProducts} notify={notify}/>
+          <ProductsManager products={products} onSave={saveProducts} notify={notify}/>
         )}
 
-        {/* ── ADMIN: Google Sheets ── */}
         {page==="sheets" && user.role==="admin" && <SheetsView visits={visits} machines={machines}/>}
 
       </main>
 
-      {/* MODALS */}
       {modal?.type==="user" && (
-        <UserModal
-          data={modal.data}
-          onSubmit={f=>{
-            if(modal.data) setUsers(p=>p.map(u=>u.id===modal.data.id?{...u,...f}:u));
-            else setUsers(p=>[...p,{...f,id:Date.now()}]);
-            setModal(null); notify(modal.data?"Usuario actualizado":"Usuario creado correctamente");
-          }}
-          onClose={()=>setModal(null)}
-        />
+        <UserModal data={modal.data} onSubmit={(f)=>saveUser(f, modal.data?.id)} onClose={()=>setModal(null)}/>
       )}
       {modal?.type==="machine" && (
-        <MachineModal
-          data={modal.data}
-          onSubmit={f=>{
-            if(modal.data) setMachines(p=>p.map(m=>m.id===modal.data.id?{...m,...f}:m));
-            else setMachines(p=>[...p,f]);
-            setModal(null); notify(modal.data?"Máquina actualizada":"Máquina añadida correctamente");
-          }}
-          onClose={()=>setModal(null)}
-        />
+        <MachineModal data={modal.data} onSubmit={(f)=>saveMachine(f, modal.data?.id)} onClose={()=>setModal(null)}/>
       )}
       {detailVisit && <DetailModal visit={detailVisit} machines={machines} onClose={()=>setDetailVisit(null)}/>}
       {toast && <div className="toast"><Icon name="check" size={15} style={{color:"var(--grn)"}}/>{toast}</div>}
@@ -535,10 +594,13 @@ function VisitForm({ user, machines, products, onSubmit }) {
   const [f, setF] = useState({machineId:"",recaudacion:false,importe:"",reposicion:false,incidencia:false,incidenciaDesc:""});
   const [prods, setProds] = useState({});
   const [err, setErr] = useState("");
+  const [saving, setSaving] = useState(false);
   const toggle = (p) => setProds(prev=>{if(prev[p]){const n={...prev};delete n[p];return n;}return{...prev,[p]:1};});
-  const submit = () => {
+  const submit = async () => {
     if(!f.machineId){setErr("Selecciona una máquina");return;}
-    onSubmit({techId:user.id,techName:user.name,...f,productos:Object.entries(prods).map(([nombre,cantidad])=>({nombre,cantidad}))});
+    setSaving(true);
+    await onSubmit({techId:user.id,techName:user.name,...f,productos:Object.entries(prods).map(([nombre,cantidad])=>({nombre,cantidad}))});
+    setSaving(false);
   };
   return (
     <div>
@@ -594,14 +656,16 @@ function VisitForm({ user, machines, products, onSubmit }) {
           </label>
           {f.incidencia&&<div className="fg"><label>Descripción</label><textarea placeholder="Describe el problema..." value={f.incidenciaDesc} onChange={e=>setF({...f,incidenciaDesc:e.target.value})}/></div>}
         </div>
-        <button className="btn btn-p" onClick={submit}><Icon name="sync" size={13}/>Guardar y Sincronizar</button>
+        <button className="btn btn-p" onClick={submit} disabled={saving}>
+          <Icon name="sync" size={13}/>{saving?"Guardando...":"Guardar y Sincronizar"}
+        </button>
       </div></div>
     </div>
   );
 }
 
 function UserModal({ data, onSubmit, onClose }) {
-  const [f, setF] = useState(data ? {name:data.name,username:data.username,password:data.password,role:data.role} : {name:"",username:"",password:"",role:"tecnico"});
+  const [f, setF] = useState(data?{name:data.name,username:data.username,password:data.password,role:data.role}:{name:"",username:"",password:"",role:"tecnico"});
   const [err, setErr] = useState("");
   const submit = () => {if(!f.name||!f.username||!f.password){setErr("Todos los campos son obligatorios");return;}onSubmit(f);};
   return (
@@ -625,7 +689,7 @@ function UserModal({ data, onSubmit, onClose }) {
 }
 
 function MachineModal({ data, onSubmit, onClose }) {
-  const [f, setF] = useState(data ? {id:data.id,location:data.location} : {id:"",location:""});
+  const [f, setF] = useState(data?{id:data.id,location:data.location}:{id:"",location:""});
   const [err, setErr] = useState("");
   const submit = () => {if(!f.id||!f.location){setErr("Todos los campos son obligatorios");return;}onSubmit(f);};
   return (
@@ -646,25 +710,36 @@ function MachineModal({ data, onSubmit, onClose }) {
   );
 }
 
-function ProductsManager({ products, setProducts, notify }) {
+function ProductsManager({ products, onSave, notify }) {
+  const [list, setList] = useState(products);
   const [newProd, setNewProd] = useState("");
+
+  useEffect(() => setList(products), [products]);
+
   const add = () => {
     const p = newProd.trim();
     if(!p) return;
-    if(products.includes(p)){notify("⚠ Ese producto ya existe");return;}
-    setProducts(prev=>[...prev,p]);
+    if(list.includes(p)){notify("⚠ Ese producto ya existe");return;}
+    const updated = [...list, p];
+    setList(updated);
+    onSave(updated);
     setNewProd("");
-    notify("Producto añadido correctamente");
   };
-  const remove = (p) => { if(window.confirm("¿Eliminar producto \""+p+"\"?")) setProducts(prev=>prev.filter(x=>x!==p)); };
+  const remove = (p) => {
+    if(window.confirm("¿Eliminar \""+p+"\"?")) {
+      const updated = list.filter(x=>x!==p);
+      setList(updated);
+      onSave(updated);
+    }
+  };
   return (
     <>
-      <div className="ph"><div className="ph-left"><h2>Productos</h2><p>{products.length} productos en catálogo</p></div></div>
+      <div className="ph"><div className="ph-left"><h2>Productos</h2><p>{list.length} productos en catálogo</p></div></div>
       <div className="card" style={{marginBottom:18}}>
         <div className="ch"><div className="ct">Añadir producto</div></div>
         <div style={{padding:"16px 18px",display:"flex",gap:10,alignItems:"center"}}>
-          <input className="fg" style={{margin:0,flex:1,background:"var(--surf2)",border:"1px solid var(--bdr)",borderRadius:9,padding:"10px 14px",color:"var(--txt)",fontFamily:"var(--font)",fontSize:13,outline:"none"}}
-            placeholder="Nombre del producto, ej: Agua con Limón 50cl"
+          <input style={{flex:1,background:"var(--surf2)",border:"1px solid var(--bdr)",borderRadius:9,padding:"10px 14px",color:"var(--txt)",fontFamily:"var(--font)",fontSize:13,outline:"none"}}
+            placeholder="Nombre del producto..."
             value={newProd} onChange={e=>setNewProd(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&add()}/>
           <button className="btn btn-p" onClick={add}><Icon name="plus" size={13}/>Añadir</button>
@@ -673,10 +748,10 @@ function ProductsManager({ products, setProducts, notify }) {
       <div className="card">
         <div className="ch"><div className="ct">Catálogo actual</div></div>
         <div style={{padding:"16px 18px"}}>
-          {products.length===0
-            ? <div style={{color:"var(--mut)",fontSize:13}}>No hay productos. Añade el primero arriba.</div>
+          {list.length===0
+            ? <div style={{color:"var(--mut)",fontSize:13}}>No hay productos.</div>
             : <div className="cg">
-                {products.map(p=>(
+                {list.map(p=>(
                   <div key={p} className="tag">
                     {p}
                     <button className="tag-del" onClick={()=>remove(p)} title="Eliminar"><Icon name="close" size={11}/></button>
@@ -726,7 +801,7 @@ function DetailModal({ visit, machines, onClose }) {
             </div>
           )}
           <div style={{display:"flex",alignItems:"center",gap:7,padding:"9px 13px",background:"rgba(16,185,129,.05)",borderRadius:7,border:"1px solid rgba(16,185,129,.2)"}}>
-            <div className="dot" style={{animationPlayState:"paused"}}/><span style={{fontSize:12,color:"var(--grn)"}}>Sincronizado con Google Sheets</span>
+            <div className="dot" style={{animationPlayState:"paused"}}/><span style={{fontSize:12,color:"var(--grn)"}}>Guardado en Firebase + Google Sheets</span>
           </div>
         </div>
       </div>
@@ -740,7 +815,7 @@ function SheetsView({ visits, machines }) {
       <div className="ph"><div className="ph-left"><h2>Google Sheets</h2><p>Datos sincronizados automáticamente</p></div></div>
       <div className="sync-bar" style={{marginBottom:18}}>
         <div className="dot"/>
-        <div><div style={{fontWeight:600,fontSize:13}}>Hoja conectada</div><div style={{fontSize:11,color:"var(--mut)"}}>Cada visita guardada se envía automáticamente a tu hoja.</div></div>
+        <div><div style={{fontWeight:600,fontSize:13}}>Firebase + Sheets activos</div><div style={{fontSize:11,color:"var(--mut)"}}>Los datos se guardan en Firebase y se envían a tu hoja automáticamente.</div></div>
         <div style={{marginLeft:"auto",fontFamily:"var(--mono)",fontSize:22,fontWeight:700,color:"var(--grn)"}}>{visits.length}</div>
       </div>
       <div className="card">
@@ -752,7 +827,7 @@ function SheetsView({ visits, machines }) {
                 ? <tr><td colSpan={10} style={{textAlign:"center",color:"var(--mut)",padding:32}}>Los datos aparecerán cuando los técnicos registren visitas.</td></tr>
                 : visits.map(v=>(
                     <tr key={v.id}>
-                      <td style={{fontFamily:"var(--mono)",fontSize:11}}>#{v.id}</td>
+                      <td style={{fontFamily:"var(--mono)",fontSize:11}}>#{v.id.slice(-6)}</td>
                       <td style={{fontSize:12}}>{new Date(v.createdAt).toLocaleString("es-ES")}</td>
                       <td>{v.techName}</td>
                       <td style={{fontFamily:"var(--mono)",color:"var(--acc)"}}>{v.machineId}</td>
