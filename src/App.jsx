@@ -5,20 +5,20 @@ const INITIAL_USERS = [
   { id: 2, username: "tecnico1", password: "tec123", name: "Carlos Martínez", role: "tecnico" },
   { id: 3, username: "tecnico2", password: "tec456", name: "Ana López", role: "tecnico" },
 ];
-
-const MACHINES = [
+const INITIAL_MACHINES = [
   { id: "VM-001", location: "Oficina Central - Planta 1" },
   { id: "VM-002", location: "Centro Comercial Sur" },
   { id: "VM-003", location: "Hospital General" },
   { id: "VM-004", location: "Estación de Tren" },
   { id: "VM-005", location: "Universidad Campus Norte" },
 ];
-
-const PRODUCTS = [
-  "Agua 50cl", "Coca-Cola 33cl", "Nestea 33cl", "Fanta Naranja 33cl",
-  "Café Solo", "Café con Leche", "Chocolate", "Chips Lay's",
-  "Galletas María", "Barrita Energética", "Zumo Naranja", "Agua con Gas",
+const INITIAL_PRODUCTS = [
+  "Agua 50cl","Coca-Cola 33cl","Nestea 33cl","Fanta Naranja 33cl",
+  "Café Solo","Café con Leche","Chocolate","Chips Lay's",
+  "Galletas María","Barrita Energética","Zumo Naranja","Agua con Gas",
 ];
+
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbxxxYXTyiRmp85RFpwGmmuUqQsi8UZKueo1asytWdtyuMbU4Oj7JYa3EGrG9Pzf8O9V/exec";
 
 const Icon = ({ name, size = 18 }) => {
   const paths = {
@@ -39,7 +39,10 @@ const Icon = ({ name, size = 18 }) => {
     alert: <><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>,
     machine: <><rect x="3" y="2" width="18" height="20" rx="2"/><path d="M7 6h10M7 10h10M7 14h5"/><circle cx="16" cy="15" r="2"/></>,
     menu: <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>,
-    chevron: <polyline points="9 18 15 12 9 6"/>,
+    edit: <><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
+    trash: <><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></>,
+    box: <><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></>,
+    settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,111 +62,48 @@ const css = `
     --font: 'Sora', sans-serif; --mono: 'JetBrains Mono', monospace;
   }
   body { font-family: var(--font); background: var(--bg); color: var(--txt); min-height: 100vh; }
-
-  /* ── SIDEBAR ── */
-  .sb {
-    position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
-    width: var(--sb-w-col);
-    background: var(--surf);
-    border-right: 1px solid var(--bdr);
-    display: flex; flex-direction: column;
-    transition: width 0.25s cubic-bezier(.4,0,.2,1);
-    overflow: hidden;
-  }
+  .sb { position:fixed; top:0; left:0; height:100vh; z-index:100; width:var(--sb-w-col); background:var(--surf); border-right:1px solid var(--bdr); display:flex; flex-direction:column; transition:width 0.25s cubic-bezier(.4,0,.2,1); overflow:hidden; }
   .sb.open { width: var(--sb-w); }
-
-  .sb-head {
-    height: 60px; flex-shrink: 0;
-    display: flex; align-items: center; gap: 10px;
-    padding: 0 14px;
-    border-bottom: 1px solid var(--bdr);
-  }
-  .sb-logo {
-    width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px;
-    background: linear-gradient(135deg, var(--acc), var(--acc2));
-    display: flex; align-items: center; justify-content: center; font-size: 17px;
-  }
-  .sb-brand { white-space: nowrap; overflow: hidden; opacity: 0; transition: opacity 0.15s 0s; font-size: 15px; font-weight: 700; }
-  .sb-brand span { color: var(--acc); }
-  .sb.open .sb-brand { opacity: 1; transition-delay: 0.1s; }
-
-  .sb-nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; overflow-x: hidden; }
-  .nav-item {
-    display: flex; align-items: center; gap: 10px; height: 40px; border-radius: 8px;
-    padding: 0 10px; cursor: pointer; border: none; background: none; width: 100%;
-    color: var(--mut); font-size: 13px; font-weight: 500; font-family: var(--font);
-    white-space: nowrap; transition: background 0.15s, color 0.15s;
-  }
-  .nav-item:hover { background: var(--surf2); color: var(--txt); }
-  .nav-item.active { background: rgba(0,212,255,0.1); color: var(--acc); }
-  .nav-icon { flex-shrink: 0; display: flex; }
-  .nav-label { opacity: 0; transition: opacity 0.1s; overflow: hidden; }
-  .sb.open .nav-label { opacity: 1; transition-delay: 0.08s; }
-
-  .sb-footer {
-    padding: 10px 8px; border-top: 1px solid var(--bdr);
-    display: flex; flex-direction: column; gap: 4px;
-  }
-  .user-row {
-    display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 8px;
-    overflow: hidden;
-  }
-  .uavatar {
-    width: 34px; height: 34px; flex-shrink: 0; border-radius: 9px;
-    background: linear-gradient(135deg, var(--acc2), var(--acc));
-    display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
-  }
-  .uinfo { white-space: nowrap; overflow: hidden; opacity: 0; transition: opacity 0.1s; }
-  .sb.open .uinfo { opacity: 1; transition-delay: 0.08s; }
-  .uname { font-size: 13px; font-weight: 600; }
-  .urole { font-size: 10px; color: var(--mut); }
-  .logout-btn {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    height: 36px; border-radius: 8px; border: 1px solid rgba(239,68,68,.25);
-    background: rgba(239,68,68,.08); color: var(--red); cursor: pointer; font-family: var(--font);
-    font-size: 12px; font-weight: 600; width: 100%; white-space: nowrap; overflow: hidden;
-    transition: all 0.15s; padding: 0 10px;
-  }
-  .logout-btn:hover { border-color: var(--red); background: rgba(239,68,68,.18); }
-  .logout-txt { opacity: 0; transition: opacity 0.1s; }
-  .sb.open .logout-txt { opacity: 1; transition-delay: 0.08s; }
-
-  /* Toggle button on top of sidebar */
-  .sb-toggle {
-    position: fixed; top: 14px; left: 14px; z-index: 101;
-    width: 34px; height: 34px; border-radius: 8px;
-    background: var(--surf); border: 1px solid var(--bdr);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; color: var(--mut); transition: all 0.15s;
-  }
-  .sb-toggle:hover { color: var(--acc); border-color: var(--acc); }
-
-  /* ── MAIN ── */
-  .main {
-    margin-left: var(--sb-w-col);
-    transition: margin-left 0.25s cubic-bezier(.4,0,.2,1);
-    padding: 24px 28px; min-height: 100vh;
-  }
-  .main.shifted { margin-left: var(--sb-w); }
-
-  /* ── LOGIN ── */
-  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at 30% 50%, #0d1f3c, var(--bg) 65%); }
-  .login-card { background: var(--surf); border: 1px solid var(--bdr); border-radius: 18px; padding: 44px 36px; width: 400px; box-shadow: 0 24px 70px rgba(0,0,0,0.5); animation: up .4s ease; }
-  @keyframes up { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .sb-head { height:60px; flex-shrink:0; display:flex; align-items:center; gap:10px; padding:0 14px; border-bottom:1px solid var(--bdr); }
+  .sb-logo { width:34px; height:34px; flex-shrink:0; border-radius:10px; background:linear-gradient(135deg,var(--acc),var(--acc2)); display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .sb-brand { white-space:nowrap; overflow:hidden; opacity:0; transition:opacity 0.15s 0s; font-size:15px; font-weight:700; }
+  .sb-brand span { color:var(--acc); }
+  .sb.open .sb-brand { opacity:1; transition-delay:0.1s; }
+  .sb-nav { flex:1; padding:10px 8px; display:flex; flex-direction:column; gap:2px; overflow-y:auto; overflow-x:hidden; }
+  .nav-section-label { font-size:9px; font-weight:700; color:var(--mut); text-transform:uppercase; letter-spacing:1px; padding:8px 10px 4px; opacity:0; transition:opacity 0.1s; white-space:nowrap; }
+  .sb.open .nav-section-label { opacity:1; transition-delay:0.08s; }
+  .nav-item { display:flex; align-items:center; gap:10px; height:40px; border-radius:8px; padding:0 10px; cursor:pointer; border:none; background:none; width:100%; color:var(--mut); font-size:13px; font-weight:500; font-family:var(--font); white-space:nowrap; transition:background 0.15s,color 0.15s; }
+  .nav-item:hover { background:var(--surf2); color:var(--txt); }
+  .nav-item.active { background:rgba(0,212,255,0.1); color:var(--acc); }
+  .nav-icon { flex-shrink:0; display:flex; }
+  .nav-label { opacity:0; transition:opacity 0.1s; overflow:hidden; }
+  .sb.open .nav-label { opacity:1; transition-delay:0.08s; }
+  .sb-footer { padding:10px 8px; border-top:1px solid var(--bdr); display:flex; flex-direction:column; gap:4px; }
+  .user-row { display:flex; align-items:center; gap:10px; padding:6px; border-radius:8px; overflow:hidden; }
+  .uavatar { width:34px; height:34px; flex-shrink:0; border-radius:9px; background:linear-gradient(135deg,var(--acc2),var(--acc)); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+  .uinfo { white-space:nowrap; overflow:hidden; opacity:0; transition:opacity 0.1s; }
+  .sb.open .uinfo { opacity:1; transition-delay:0.08s; }
+  .uname { font-size:13px; font-weight:600; }
+  .urole { font-size:10px; color:var(--mut); }
+  .logout-btn { display:flex; align-items:center; justify-content:center; gap:8px; height:36px; border-radius:8px; border:1px solid rgba(239,68,68,.25); background:rgba(239,68,68,.08); color:var(--red); cursor:pointer; font-family:var(--font); font-size:12px; font-weight:600; width:100%; white-space:nowrap; overflow:hidden; transition:all 0.15s; padding:0 10px; }
+  .logout-btn:hover { border-color:var(--red); background:rgba(239,68,68,.18); }
+  .logout-txt { opacity:0; transition:opacity 0.1s; }
+  .sb.open .logout-txt { opacity:1; transition-delay:0.08s; }
+  .sb-toggle { position:fixed; top:14px; left:14px; z-index:101; width:34px; height:34px; border-radius:8px; background:var(--surf); border:1px solid var(--bdr); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--mut); transition:all 0.15s; }
+  .sb-toggle:hover { color:var(--acc); border-color:var(--acc); }
+  .main { margin-left:var(--sb-w-col); transition:margin-left 0.25s cubic-bezier(.4,0,.2,1); padding:24px 28px; min-height:100vh; }
+  .main.shifted { margin-left:var(--sb-w); }
+  .login-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; background:radial-gradient(ellipse at 30% 50%,#0d1f3c,var(--bg) 65%); }
+  .login-card { background:var(--surf); border:1px solid var(--bdr); border-radius:18px; padding:44px 36px; width:400px; box-shadow:0 24px 70px rgba(0,0,0,0.5); animation:up .4s ease; }
+  @keyframes up { from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)} }
   .login-logo { display:flex; align-items:center; gap:12px; margin-bottom:32px; }
   .login-logo-icon { width:46px; height:46px; background:linear-gradient(135deg,var(--acc),var(--acc2)); border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:21px; }
   .login-logo h1 { font-size:21px; font-weight:700; letter-spacing:-.5px; }
   .login-logo h1 span { color:var(--acc); }
   .login-sub { color:var(--mut); font-size:12px; margin-top:2px; }
-
-  /* ── FORMS ── */
   .fg { margin-bottom:16px; }
   .fg label { display:block; font-size:11px; font-weight:600; color:var(--mut); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; }
-  .fg input, .fg select, .fg textarea {
-    width:100%; background:var(--surf2); border:1px solid var(--bdr);
-    border-radius:9px; padding:11px 14px; color:var(--txt); font-family:var(--font); font-size:13px;
-    outline:none; transition:border-color .2s, box-shadow .2s;
-  }
+  .fg input,.fg select,.fg textarea { width:100%; background:var(--surf2); border:1px solid var(--bdr); border-radius:9px; padding:11px 14px; color:var(--txt); font-family:var(--font); font-size:13px; outline:none; transition:border-color .2s,box-shadow .2s; }
   .fg input:focus,.fg select:focus,.fg textarea:focus { border-color:var(--acc); box-shadow:0 0 0 3px rgba(0,212,255,.08); }
   .fg select option { background:var(--surf2); }
   .fg textarea { resize:vertical; min-height:76px; }
@@ -172,10 +112,10 @@ const css = `
   .btn-p:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,212,255,.35); }
   .btn-s { background:var(--surf2); color:var(--txt); border:1px solid var(--bdr); }
   .btn-s:hover { border-color:var(--acc); color:var(--acc); }
+  .btn-d { background:rgba(239,68,68,.1); color:var(--red); border:1px solid rgba(239,68,68,.25); }
+  .btn-d:hover { background:rgba(239,68,68,.2); }
   .btn-full { width:100%; justify-content:center; }
   .err { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:var(--red); padding:9px 13px; border-radius:8px; font-size:13px; margin-bottom:14px; }
-
-  /* ── PAGE ── */
   .ph { margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
   .ph-left h2 { font-size:22px; font-weight:700; letter-spacing:-.4px; }
   .ph-left p { color:var(--mut); font-size:13px; margin-top:3px; }
@@ -185,8 +125,6 @@ const css = `
   .sc-v { font-size:28px; font-weight:700; font-family:var(--mono); letter-spacing:-1px; }
   .sc-l { font-size:11px; color:var(--mut); margin-top:3px; text-transform:uppercase; letter-spacing:.5px; }
   .sc-i { position:absolute; top:16px; right:16px; color:var(--bdr); }
-
-  /* ── CARD/TABLE ── */
   .card { background:var(--surf); border:1px solid var(--bdr); border-radius:13px; overflow:hidden; margin-bottom:18px; }
   .ch { padding:16px 18px; border-bottom:1px solid var(--bdr); display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
   .ct { font-size:14px; font-weight:700; }
@@ -197,8 +135,6 @@ const css = `
   tr:last-child td { border-bottom:none; }
   tr:hover td { background:rgba(255,255,255,.015); }
   .empty { text-align:center; padding:44px 20px; color:var(--mut); }
-
-  /* ── MODAL ── */
   .overlay { position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; animation:fi .2s ease; }
   @keyframes fi { from{opacity:0}to{opacity:1} }
   .modal { background:var(--surf); border:1px solid var(--bdr); border-radius:18px; width:100%; max-width:620px; max-height:90vh; overflow-y:auto; animation:up .3s ease; }
@@ -215,8 +151,6 @@ const css = `
   .pr { display:flex; align-items:center; gap:9px; margin-bottom:9px; }
   .qi { width:72px; background:var(--surf2); border:1px solid var(--bdr); border-radius:7px; padding:7px 9px; color:var(--txt); font-family:var(--font); font-size:13px; outline:none; }
   .qi:focus { border-color:var(--acc); }
-
-  /* ── BADGES ── */
   .badge { display:inline-flex; align-items:center; gap:3px; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600; }
   .bg { background:rgba(16,185,129,.15); color:var(--grn); border:1px solid rgba(16,185,129,.25); }
   .br { background:rgba(239,68,68,.15); color:var(--red); border:1px solid rgba(239,68,68,.25); }
@@ -224,8 +158,6 @@ const css = `
   .bb { background:rgba(0,212,255,.1); color:var(--acc); border:1px solid rgba(0,212,255,.2); }
   .role-a { background:rgba(124,58,237,.2); color:#a78bfa; border:1px solid rgba(124,58,237,.3); font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; text-transform:uppercase; }
   .role-t { background:rgba(0,212,255,.1); color:var(--acc); border:1px solid rgba(0,212,255,.2); font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; text-transform:uppercase; }
-
-  /* ── MISC ── */
   .fi { background:var(--surf2); border:1px solid var(--bdr); border-radius:8px; padding:8px 12px; color:var(--txt); font-family:var(--font); font-size:13px; outline:none; max-width:200px; min-width:0; }
   select.fi { appearance:auto; cursor:pointer; }
   .fi:focus { border-color:var(--acc); }
@@ -242,6 +174,10 @@ const css = `
   .dv { font-weight:500; max-width:58%; text-align:right; }
   .sbox { background:var(--surf2); border-radius:9px; padding:14px; margin-bottom:14px; }
   .demo-box { margin-top:18px; padding:13px; background:rgba(255,255,255,.03); border-radius:9px; border:1px solid var(--bdr); }
+  .tag { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:var(--surf2); border:1px solid var(--bdr); border-radius:6px; font-size:12px; }
+  .tag-del { background:none; border:none; color:var(--mut); cursor:pointer; padding:0; display:flex; align-items:center; transition:color .15s; }
+  .tag-del:hover { color:var(--red); }
+  .actions { display:flex; gap:6px; }
 `;
 
 export default function App() {
@@ -249,8 +185,10 @@ export default function App() {
   const [page, setPage] = useState("dashboard");
   const [visits, setVisits] = useState([]);
   const [users, setUsers] = useState(INITIAL_USERS);
+  const [machines, setMachines] = useState(INITIAL_MACHINES);
+  const [products, setProducts] = useState(INITIAL_PRODUCTS);
   const [sbOpen, setSbOpen] = useState(false);
-  const [showUserForm, setShowUserForm] = useState(false);
+  const [modal, setModal] = useState(null); // { type, data }
   const [detailVisit, setDetailVisit] = useState(null);
   const [toast, setToast] = useState(null);
   const [fMachine, setFMachine] = useState("");
@@ -266,18 +204,14 @@ export default function App() {
     if (u) { setUser(u); setPage(u.role === "admin" ? "dashboard" : "mis-visitas"); }
     else setLoginErr("Usuario o contraseña incorrectos");
   };
-
   const doLogout = () => { setUser(null); setPage("dashboard"); setSbOpen(false); };
-
-  const SHEETS_URL = "https://script.google.com/macros/s/AKfycbxxxYXTyiRmp85RFpwGmmuUqQsi8UZKueo1asytWdtyuMbU4Oj7JYa3EGrG9Pzf8O9V/exec";
 
   const addVisit = async (v) => {
     const newVisit = { ...v, id: Date.now(), createdAt: new Date().toISOString() };
     setVisits(p => [newVisit, ...p]);
     setPage("mis-visitas");
     notify("Visita guardada — sincronizando...");
-
-    const machine = MACHINES.find(m => m.id === newVisit.machineId);
+    const machine = machines.find(m => m.id === newVisit.machineId);
     const payload = {
       id: newVisit.id,
       fecha: new Date(newVisit.createdAt).toLocaleString("es-ES"),
@@ -287,28 +221,16 @@ export default function App() {
       recaudacion: newVisit.recaudacion ? "Sí" : "No",
       importe: newVisit.recaudacion ? Number(newVisit.importe).toFixed(2) : "0.00",
       reposicion: newVisit.reposicion ? "Sí" : "No",
-      productos: newVisit.productos?.map(p => p.nombre + "(" + p.cantidad + ")").join(", ") || "",
+      productos: newVisit.productos?.map(p => p.nombre+"("+p.cantidad+")").join(", ") || "",
       incidencia: newVisit.incidencia && newVisit.incidenciaDesc ? "Sí" : "No",
       descripcion: newVisit.incidenciaDesc || "",
     };
-
     try {
-      await fetch(SHEETS_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      await fetch(SHEETS_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
       notify("✓ Visita sincronizada con Google Sheets");
-    } catch (err) {
+    } catch {
       notify("⚠ Guardada localmente — sin conexión a Sheets");
     }
-  };
-
-  const addUser = (u) => {
-    setUsers(p => [...p, { ...u, id: Date.now() }]);
-    setShowUserForm(false);
-    notify("Usuario creado correctamente");
   };
 
   if (!user) return (
@@ -323,21 +245,21 @@ export default function App() {
           {loginErr && <div className="err">⚠️ {loginErr}</div>}
           <div className="fg"><label>Usuario</label>
             <input placeholder="Tu usuario" value={loginData.username}
-              onChange={e => setLoginData({ ...loginData, username: e.target.value })}
-              onKeyDown={e => e.key === "Enter" && doLogin()} />
+              onChange={e => setLoginData({...loginData, username:e.target.value})}
+              onKeyDown={e => e.key==="Enter" && doLogin()} />
           </div>
           <div className="fg"><label>Contraseña</label>
             <input type="password" placeholder="Tu contraseña" value={loginData.password}
-              onChange={e => setLoginData({ ...loginData, password: e.target.value })}
-              onKeyDown={e => e.key === "Enter" && doLogin()} />
+              onChange={e => setLoginData({...loginData, password:e.target.value})}
+              onKeyDown={e => e.key==="Enter" && doLogin()} />
           </div>
-          <button className="btn btn-p btn-full" style={{ marginTop: 4 }} onClick={doLogin}>Iniciar Sesión</button>
+          <button className="btn btn-p btn-full" style={{marginTop:4}} onClick={doLogin}>Iniciar Sesión</button>
           <div className="demo-box">
-            <div style={{ fontSize: 10, color: "var(--mut)", marginBottom: 7, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".8px" }}>Cuentas demo</div>
-            <div style={{ fontSize: 12, fontFamily: "var(--mono)", lineHeight: 1.9 }}>
-              <div><span style={{ color: "#a78bfa" }}>admin</span> / admin123 — Administrador</div>
-              <div><span style={{ color: "var(--acc)" }}>tecnico1</span> / tec123 — Técnico</div>
-              <div><span style={{ color: "var(--acc)" }}>tecnico2</span> / tec456 — Técnico</div>
+            <div style={{fontSize:10,color:"var(--mut)",marginBottom:7,fontWeight:700,textTransform:"uppercase",letterSpacing:".8px"}}>Cuentas demo</div>
+            <div style={{fontSize:12,fontFamily:"var(--mono)",lineHeight:1.9}}>
+              <div><span style={{color:"#a78bfa"}}>admin</span> / admin123 — Administrador</div>
+              <div><span style={{color:"var(--acc)"}}>tecnico1</span> / tec123 — Técnico</div>
+              <div><span style={{color:"var(--acc)"}}>tecnico2</span> / tec456 — Técnico</div>
             </div>
           </div>
         </div>
@@ -346,14 +268,18 @@ export default function App() {
   );
 
   const navAdmin = [
-    { id: "dashboard", label: "Dashboard", icon: "dashboard" },
-    { id: "visits", label: "Todas las Visitas", icon: "list" },
-    { id: "users", label: "Usuarios", icon: "users" },
-    { id: "sheets", label: "Google Sheets", icon: "sheets" },
+    { section: "Principal" },
+    { id:"dashboard", label:"Dashboard", icon:"dashboard" },
+    { id:"visits", label:"Todas las Visitas", icon:"list" },
+    { section: "Configuración" },
+    { id:"users", label:"Usuarios", icon:"users" },
+    { id:"mgmachines", label:"Máquinas", icon:"machine" },
+    { id:"mgproducts", label:"Productos", icon:"box" },
+    { id:"sheets", label:"Google Sheets", icon:"sheets" },
   ];
   const navTech = [
-    { id: "mis-visitas", label: "Mis Visitas", icon: "list" },
-    { id: "nueva-visita", label: "Nueva Visita", icon: "plus" },
+    { id:"mis-visitas", label:"Mis Visitas", icon:"list" },
+    { id:"nueva-visita", label:"Nueva Visita", icon:"plus" },
   ];
   const nav = user.role === "admin" ? navAdmin : navTech;
 
@@ -363,140 +289,119 @@ export default function App() {
     if (fDate && !v.createdAt.startsWith(fDate)) return false;
     return true;
   });
-
-  const totalRec = visits.filter(v => v.recaudacion).reduce((s, v) => s + Number(v.importe || 0), 0);
-  const incCount = visits.filter(v => v.incidencia && v.incidenciaDesc).length;
-  const monthCount = visits.filter(v => {
-    const d = new Date(v.createdAt), n = new Date();
-    return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear();
-  }).length;
+  const totalRec = visits.filter(v=>v.recaudacion).reduce((s,v)=>s+Number(v.importe||0),0);
+  const incCount = visits.filter(v=>v.incidencia&&v.incidenciaDesc).length;
+  const monthCount = visits.filter(v=>{ const d=new Date(v.createdAt),n=new Date(); return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear(); }).length;
 
   return (
     <>
       <style>{css}</style>
 
-      {/* Sidebar toggle button */}
-      <button className="sb-toggle" onClick={() => setSbOpen(o => !o)} title={sbOpen ? "Cerrar menú" : "Abrir menú"}>
-        <Icon name={sbOpen ? "close" : "menu"} size={16} />
+      <button className="sb-toggle" onClick={()=>setSbOpen(o=>!o)} title={sbOpen?"Cerrar menú":"Abrir menú"}>
+        <Icon name={sbOpen?"close":"menu"} size={16}/>
       </button>
 
-      {/* Sidebar */}
-      <aside className={"sb" + (sbOpen ? " open" : "")}>
+      <aside className={"sb"+(sbOpen?" open":"")}>
         <div className="sb-head">
           <div className="sb-logo">🏧</div>
           <div className="sb-brand">Vending<span>Pro</span></div>
         </div>
-
         <nav className="sb-nav">
-          {nav.map(item => (
-            <button key={item.id} className={"nav-item" + (page === item.id ? " active" : "")}
-              onClick={() => { setPage(item.id); setSbOpen(false); }}>
-              <span className="nav-icon"><Icon name={item.icon} size={17} /></span>
-              <span className="nav-label">{item.label}</span>
-            </button>
-          ))}
+          {nav.map((item, i) =>
+            item.section
+              ? <div key={i} className="nav-section-label">{item.section}</div>
+              : <button key={item.id} className={"nav-item"+(page===item.id?" active":"")}
+                  onClick={()=>{setPage(item.id);setSbOpen(false);}}>
+                  <span className="nav-icon"><Icon name={item.icon} size={17}/></span>
+                  <span className="nav-label">{item.label}</span>
+                </button>
+          )}
         </nav>
-
         <div className="sb-footer">
           <div className="user-row">
             <div className="uavatar">{user.name[0]}</div>
-            <div className="uinfo">
-              <div className="uname">{user.name}</div>
-              <div className="urole">{user.role}</div>
-            </div>
+            <div className="uinfo"><div className="uname">{user.name}</div><div className="urole">{user.role}</div></div>
           </div>
-          <button className="logout-btn" onClick={doLogout}>
-            <Icon name="logout" size={14} />
+          <button className="logout-btn" onClick={doLogout} title="Cerrar sesión">
+            <Icon name="logout" size={14}/>
             <span className="logout-txt">Cerrar sesión</span>
           </button>
         </div>
       </aside>
 
-      {/* Overlay to close sidebar on mobile */}
-      {sbOpen && <div onClick={() => setSbOpen(false)} style={{ position:"fixed",inset:0,zIndex:99,background:"rgba(0,0,0,.4)" }} />}
+      {sbOpen && <div onClick={()=>setSbOpen(false)} style={{position:"fixed",inset:0,zIndex:99,background:"rgba(0,0,0,.4)"}}/>}
 
-      {/* Main content */}
-      <main className={"main" + (sbOpen ? " shifted" : "")}>
+      <main className={"main"+(sbOpen?" shifted":"")}>
 
         {/* ── TÉCNICO: Mis visitas ── */}
-        {page === "mis-visitas" && user.role === "tecnico" && (
+        {page==="mis-visitas" && user.role==="tecnico" && (
           <>
             <div className="ph">
               <div className="ph-left"><h2>Mis Visitas</h2><p>Historial de tus visitas registradas</p></div>
-              <button className="btn btn-p" onClick={() => setPage("nueva-visita")}><Icon name="plus" size={13} />Nueva Visita</button>
+              <button className="btn btn-p" onClick={()=>setPage("nueva-visita")}><Icon name="plus" size={13}/>Nueva Visita</button>
             </div>
-            <VisitTable visits={visits.filter(v => v.techId === user.id)} onView={setDetailVisit} />
+            <VisitTable visits={visits.filter(v=>v.techId===user.id)} onView={setDetailVisit}/>
           </>
         )}
 
         {/* ── TÉCNICO: Nueva visita ── */}
-        {page === "nueva-visita" && user.role === "tecnico" && (
+        {page==="nueva-visita" && user.role==="tecnico" && (
           <>
-            <button className="back-btn" onClick={() => setPage("mis-visitas")}><Icon name="back" size={14} />Volver a Mis Visitas</button>
-            <VisitForm user={user} onSubmit={addVisit} />
+            <button className="back-btn" onClick={()=>setPage("mis-visitas")}><Icon name="back" size={14}/>Volver a Mis Visitas</button>
+            <VisitForm user={user} machines={machines} products={products} onSubmit={addVisit}/>
           </>
         )}
 
         {/* ── ADMIN: Dashboard ── */}
-        {page === "dashboard" && user.role === "admin" && (
+        {page==="dashboard" && user.role==="admin" && (
           <>
             <div className="ph"><div className="ph-left"><h2>Dashboard</h2><p>Resumen del sistema de gestión</p></div></div>
             <div className="stats">
-              {[
-                { v: visits.length, l: "Total Visitas", i: "visit" },
-                { v: totalRec.toFixed(2) + " €", l: "Total Recaudado", i: "money" },
-                { v: monthCount, l: "Visitas Este Mes", i: "machine" },
-                { v: incCount, l: "Incidencias", i: "alert" },
-              ].map(s => (
+              {[{v:visits.length,l:"Total Visitas",i:"visit"},{v:totalRec.toFixed(2)+" €",l:"Total Recaudado",i:"money"},{v:monthCount,l:"Visitas Este Mes",i:"machine"},{v:incCount,l:"Incidencias",i:"alert"}].map(s=>(
                 <div className="sc" key={s.l}>
-                  <div className="sc-v">{s.v}</div>
-                  <div className="sc-l">{s.l}</div>
-                  <div className="sc-i"><Icon name={s.i} size={26} /></div>
+                  <div className="sc-v">{s.v}</div><div className="sc-l">{s.l}</div>
+                  <div className="sc-i"><Icon name={s.i} size={26}/></div>
                 </div>
               ))}
             </div>
-            <div className="sync-bar">
-              <div className="dot" />
-              <span style={{ color:"var(--grn)", fontWeight:600 }}>Google Sheets sincronizado</span>
-              <span style={{ color:"var(--mut)" }}>— {visits.length} registros</span>
-            </div>
-            <VisitTable visits={visits.slice(0, 8)} onView={setDetailVisit} compact />
+            <div className="sync-bar"><div className="dot"/><span style={{color:"var(--grn)",fontWeight:600}}>Google Sheets sincronizado</span><span style={{color:"var(--mut)"}}>— {visits.length} registros</span></div>
+            <VisitTable visits={visits.slice(0,8)} onView={setDetailVisit} compact/>
           </>
         )}
 
         {/* ── ADMIN: Todas las visitas ── */}
-        {page === "visits" && user.role === "admin" && (
+        {page==="visits" && user.role==="admin" && (
           <>
             <div className="ph"><div className="ph-left"><h2>Todas las Visitas</h2><p>{visits.length} registros totales</p></div></div>
             <div className="card">
               <div className="ch">
-                <span style={{ display:"flex", alignItems:"center", gap:7, fontSize:13, fontWeight:600 }}><Icon name="filter" size={13} />Filtros</span>
-                {(fMachine||fTech||fDate) && <button className="btn btn-s" style={{ padding:"5px 11px", fontSize:12 }} onClick={()=>{setFMachine("");setFTech("");setFDate("");}}>Limpiar</button>}
+                <span style={{display:"flex",alignItems:"center",gap:7,fontSize:13,fontWeight:600}}><Icon name="filter" size={13}/>Filtros</span>
+                {(fMachine||fTech||fDate)&&<button className="btn btn-s" style={{padding:"5px 11px",fontSize:12}} onClick={()=>{setFMachine("");setFTech("");setFDate("");}}>Limpiar</button>}
               </div>
-              <div style={{ padding:"14px 18px", display:"flex", gap:9, flexWrap:"wrap" }}>
+              <div style={{padding:"14px 18px",display:"flex",gap:9,flexWrap:"wrap"}}>
                 <select className="fi" value={fMachine} onChange={e=>setFMachine(e.target.value)}>
                   <option value="">Todas las máquinas</option>
-                  {MACHINES.map(m=><option key={m.id} value={m.id}>{m.id} – {m.location}</option>)}
+                  {machines.map(m=><option key={m.id} value={m.id}>{m.id} – {m.location}</option>)}
                 </select>
-                <input className="fi" placeholder="Buscar técnico..." value={fTech} onChange={e=>setFTech(e.target.value)} />
-                <input type="date" className="fi" value={fDate} onChange={e=>setFDate(e.target.value)} />
+                <input className="fi" style={{maxWidth:180}} placeholder="Buscar técnico..." value={fTech} onChange={e=>setFTech(e.target.value)}/>
+                <input type="date" className="fi" value={fDate} onChange={e=>setFDate(e.target.value)}/>
               </div>
             </div>
-            <VisitTable visits={fVisits} onView={setDetailVisit} showTech />
+            <VisitTable visits={fVisits} onView={setDetailVisit} showTech/>
           </>
         )}
 
         {/* ── ADMIN: Usuarios ── */}
-        {page === "users" && user.role === "admin" && (
+        {page==="users" && user.role==="admin" && (
           <>
             <div className="ph">
               <div className="ph-left"><h2>Usuarios</h2><p>{users.length} usuarios registrados</p></div>
-              <button className="btn btn-p" onClick={()=>setShowUserForm(true)}><Icon name="plus" size={13}/>Nuevo Usuario</button>
+              <button className="btn btn-p" onClick={()=>setModal({type:"user",data:null})}><Icon name="plus" size={13}/>Nuevo Usuario</button>
             </div>
             <div className="card">
               <div className="tw">
                 <table>
-                  <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Visitas</th></tr></thead>
+                  <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Visitas</th><th>Acciones</th></tr></thead>
                   <tbody>
                     {users.map(u=>(
                       <tr key={u.id}>
@@ -504,6 +409,12 @@ export default function App() {
                         <td style={{fontFamily:"var(--mono)",fontSize:12}}>{u.username}</td>
                         <td><span className={u.role==="admin"?"role-a":"role-t"}>{u.role}</span></td>
                         <td style={{fontFamily:"var(--mono)"}}>{visits.filter(v=>v.techId===u.id).length}</td>
+                        <td>
+                          <div className="actions">
+                            <button className="btn btn-s" style={{padding:"5px 10px",fontSize:12}} onClick={()=>setModal({type:"user",data:u})}><Icon name="edit" size={12}/>Editar</button>
+                            {u.id!==user.id && <button className="btn btn-d" style={{padding:"5px 10px",fontSize:12}} onClick={()=>{if(window.confirm("¿Eliminar usuario "+u.name+"?"))setUsers(p=>p.filter(x=>x.id!==u.id));}}><Icon name="trash" size={12}/></button>}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -513,14 +424,75 @@ export default function App() {
           </>
         )}
 
+        {/* ── ADMIN: Máquinas ── */}
+        {page==="mgmachines" && user.role==="admin" && (
+          <>
+            <div className="ph">
+              <div className="ph-left"><h2>Máquinas</h2><p>{machines.length} máquinas registradas</p></div>
+              <button className="btn btn-p" onClick={()=>setModal({type:"machine",data:null})}><Icon name="plus" size={13}/>Nueva Máquina</button>
+            </div>
+            <div className="card">
+              <div className="tw">
+                <table>
+                  <thead><tr><th>ID</th><th>Ubicación</th><th>Visitas</th><th>Acciones</th></tr></thead>
+                  <tbody>
+                    {machines.length===0
+                      ? <tr><td colSpan={4}><div className="empty">No hay máquinas. Añade la primera.</div></td></tr>
+                      : machines.map(m=>(
+                        <tr key={m.id}>
+                          <td style={{fontFamily:"var(--mono)",color:"var(--acc)",fontWeight:600}}>{m.id}</td>
+                          <td>{m.location}</td>
+                          <td style={{fontFamily:"var(--mono)"}}>{visits.filter(v=>v.machineId===m.id).length}</td>
+                          <td>
+                            <div className="actions">
+                              <button className="btn btn-s" style={{padding:"5px 10px",fontSize:12}} onClick={()=>setModal({type:"machine",data:m})}><Icon name="edit" size={12}/>Editar</button>
+                              <button className="btn btn-d" style={{padding:"5px 10px",fontSize:12}} onClick={()=>{if(window.confirm("¿Eliminar máquina "+m.id+"?"))setMachines(p=>p.filter(x=>x.id!==m.id));}}><Icon name="trash" size={12}/></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── ADMIN: Productos ── */}
+        {page==="mgproducts" && user.role==="admin" && (
+          <ProductsManager products={products} setProducts={setProducts} notify={notify}/>
+        )}
+
         {/* ── ADMIN: Google Sheets ── */}
-        {page === "sheets" && user.role === "admin" && <SheetsView visits={visits} />}
+        {page==="sheets" && user.role==="admin" && <SheetsView visits={visits} machines={machines}/>}
 
       </main>
 
-      {showUserForm && <UserModal onSubmit={addUser} onClose={()=>setShowUserForm(false)} />}
-      {detailVisit && <DetailModal visit={detailVisit} onClose={()=>setDetailVisit(null)} />}
-      {toast && <div className="toast"><Icon name="check" size={15} style={{color:"var(--grn)"}} />{toast}</div>}
+      {/* MODALS */}
+      {modal?.type==="user" && (
+        <UserModal
+          data={modal.data}
+          onSubmit={f=>{
+            if(modal.data) setUsers(p=>p.map(u=>u.id===modal.data.id?{...u,...f}:u));
+            else setUsers(p=>[...p,{...f,id:Date.now()}]);
+            setModal(null); notify(modal.data?"Usuario actualizado":"Usuario creado correctamente");
+          }}
+          onClose={()=>setModal(null)}
+        />
+      )}
+      {modal?.type==="machine" && (
+        <MachineModal
+          data={modal.data}
+          onSubmit={f=>{
+            if(modal.data) setMachines(p=>p.map(m=>m.id===modal.data.id?{...m,...f}:m));
+            else setMachines(p=>[...p,f]);
+            setModal(null); notify(modal.data?"Máquina actualizada":"Máquina añadida correctamente");
+          }}
+          onClose={()=>setModal(null)}
+        />
+      )}
+      {detailVisit && <DetailModal visit={detailVisit} machines={machines} onClose={()=>setDetailVisit(null)}/>}
+      {toast && <div className="toast"><Icon name="check" size={15} style={{color:"var(--grn)"}}/>{toast}</div>}
     </>
   );
 }
@@ -529,31 +501,22 @@ function VisitTable({ visits, onView, compact, showTech }) {
   return (
     <div className="card">
       <div className="tw">
-        {visits.length === 0
+        {visits.length===0
           ? <div className="empty">📋<br/>No hay visitas registradas aún</div>
           : <table>
               <thead>
                 <tr>
                   <th>Fecha</th>
-                  {(showTech || !compact) && <th>Técnico</th>}
-                  <th>Máquina</th>
-                  <th>Recaudación</th>
-                  <th>Reposición</th>
-                  <th>Incidencia</th>
-                  <th></th>
+                  {(showTech||!compact)&&<th>Técnico</th>}
+                  <th>Máquina</th><th>Recaudación</th><th>Reposición</th><th>Incidencia</th><th></th>
                 </tr>
               </thead>
               <tbody>
                 {visits.map(v=>(
                   <tr key={v.id}>
-                    <td style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--mut)"}}>
-                      {new Date(v.createdAt).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}
-                    </td>
-                    {(showTech || !compact) && <td style={{fontWeight:600}}>{v.techName}</td>}
-                    <td>
-                      <span style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--acc)"}}>{v.machineId}</span>
-                      <div style={{fontSize:11,color:"var(--mut)"}}>{MACHINES.find(m=>m.id===v.machineId)?.location}</div>
-                    </td>
+                    <td style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--mut)"}}>{new Date(v.createdAt).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</td>
+                    {(showTech||!compact)&&<td style={{fontWeight:600}}>{v.techName}</td>}
+                    <td><span style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--acc)"}}>{v.machineId}</span></td>
                     <td>{v.recaudacion?<span className="badge bg">✓ {Number(v.importe||0).toFixed(2)} €</span>:<span className="badge br">✗ No</span>}</td>
                     <td>{v.reposicion?<span className="badge bb">✓ {v.productos?.length||0} prod.</span>:<span style={{color:"var(--mut)",fontSize:12}}>—</span>}</td>
                     <td>{v.incidencia&&v.incidenciaDesc?<span className="badge by">⚠ Sí</span>:<span style={{color:"var(--mut)",fontSize:12}}>—</span>}</td>
@@ -568,112 +531,92 @@ function VisitTable({ visits, onView, compact, showTech }) {
   );
 }
 
-function VisitForm({ user, onSubmit }) {
-  const [f, setF] = useState({ machineId:"", recaudacion:false, importe:"", reposicion:false, incidencia:false, incidenciaDesc:"" });
+function VisitForm({ user, machines, products, onSubmit }) {
+  const [f, setF] = useState({machineId:"",recaudacion:false,importe:"",reposicion:false,incidencia:false,incidenciaDesc:""});
   const [prods, setProds] = useState({});
   const [err, setErr] = useState("");
-
-  const toggle = (p) => setProds(prev => { if (prev[p]) { const n={...prev}; delete n[p]; return n; } return {...prev,[p]:1}; });
-
+  const toggle = (p) => setProds(prev=>{if(prev[p]){const n={...prev};delete n[p];return n;}return{...prev,[p]:1};});
   const submit = () => {
-    if (!f.machineId) { setErr("Selecciona una máquina"); return; }
-    onSubmit({ techId:user.id, techName:user.name, ...f, productos:Object.entries(prods).map(([nombre,cantidad])=>({nombre,cantidad})) });
+    if(!f.machineId){setErr("Selecciona una máquina");return;}
+    onSubmit({techId:user.id,techName:user.name,...f,productos:Object.entries(prods).map(([nombre,cantidad])=>({nombre,cantidad}))});
   };
-
   return (
     <div>
       <div className="ph"><div className="ph-left"><h2>Nueva Visita</h2><p>Registra los datos de la visita a la máquina</p></div></div>
-      <div className="card">
-        <div style={{padding:"20px 22px"}}>
-          {err && <div className="err">{err}</div>}
-
-          <div className="fsec">
-            <div className="fst">📍 Identificación</div>
-            <div className="frow">
-              <div className="fg"><label>Técnico</label><input value={user.name} disabled style={{opacity:.6}} /></div>
-              <div className="fg">
-                <label>Máquina *</label>
-                <select value={f.machineId} onChange={e=>setF({...f,machineId:e.target.value})}>
-                  <option value="">Selecciona máquina...</option>
-                  {MACHINES.map(m=><option key={m.id} value={m.id}>{m.id} — {m.location}</option>)}
-                </select>
-              </div>
+      <div className="card"><div style={{padding:"20px 22px"}}>
+        {err&&<div className="err">{err}</div>}
+        <div className="fsec">
+          <div className="fst">📍 Identificación</div>
+          <div className="frow">
+            <div className="fg"><label>Técnico</label><input value={user.name} disabled style={{opacity:.6}}/></div>
+            <div className="fg"><label>Máquina *</label>
+              <select value={f.machineId} onChange={e=>setF({...f,machineId:e.target.value})}>
+                <option value="">Selecciona máquina...</option>
+                {machines.map(m=><option key={m.id} value={m.id}>{m.id} — {m.location}</option>)}
+              </select>
             </div>
           </div>
-
-          <div className="fsec">
-            <div className="fst">💰 Recaudación</div>
-            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,marginBottom:11}}>
-              <input type="checkbox" checked={f.recaudacion} onChange={e=>setF({...f,recaudacion:e.target.checked})} />
-              ¿Se ha recaudado?
-            </label>
-            {f.recaudacion && <div className="fg" style={{maxWidth:180}}><label>Importe (€)</label><input type="number" min="0" step="0.01" placeholder="0.00" value={f.importe} onChange={e=>setF({...f,importe:e.target.value})} /></div>}
-          </div>
-
-          <div className="fsec">
-            <div className="fst">📦 Reposición</div>
-            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,marginBottom:11}}>
-              <input type="checkbox" checked={f.reposicion} onChange={e=>setF({...f,reposicion:e.target.checked})} />
-              ¿Se han repuesto productos?
-            </label>
-            {f.reposicion && (
-              <>
-                <div className="cg" style={{marginBottom:12}}>
-                  {PRODUCTS.map(p=>(
-                    <div key={p} className={"ci"+(prods[p]?" sel":"")} onClick={()=>toggle(p)}>
-                      {prods[p]&&<Icon name="check" size={11}/>} {p}
-                    </div>
-                  ))}
-                </div>
-                {Object.keys(prods).length > 0 && (
-                  <div>
-                    <div style={{fontSize:11,color:"var(--mut)",marginBottom:7,fontWeight:600}}>Cantidades:</div>
-                    {Object.keys(prods).map(p=>(
-                      <div key={p} className="pr">
-                        <span style={{fontSize:13,flex:1}}>{p}</span>
-                        <input className="qi" type="number" min="1" value={prods[p]} onChange={e=>setProds(prev=>({...prev,[p]:Number(e.target.value)}))} />
-                        <span style={{fontSize:12,color:"var(--mut)"}}>unid.</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="fsec">
-            <div className="fst">⚠️ Incidencias</div>
-            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,marginBottom:11}}>
-              <input type="checkbox" checked={f.incidencia} onChange={e=>setF({...f,incidencia:e.target.checked})} />
-              ¿Hay alguna incidencia?
-            </label>
-            {f.incidencia && <div className="fg"><label>Descripción</label><textarea placeholder="Describe el problema..." value={f.incidenciaDesc} onChange={e=>setF({...f,incidenciaDesc:e.target.value})} /></div>}
-          </div>
-
-          <button className="btn btn-p" onClick={submit}><Icon name="sync" size={13}/>Guardar y Sincronizar</button>
         </div>
-      </div>
+        <div className="fsec">
+          <div className="fst">💰 Recaudación</div>
+          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,marginBottom:11}}>
+            <input type="checkbox" checked={f.recaudacion} onChange={e=>setF({...f,recaudacion:e.target.checked})}/>¿Se ha recaudado?
+          </label>
+          {f.recaudacion&&<div className="fg" style={{maxWidth:180}}><label>Importe (€)</label><input type="number" min="0" step="0.01" placeholder="0.00" value={f.importe} onChange={e=>setF({...f,importe:e.target.value})}/></div>}
+        </div>
+        <div className="fsec">
+          <div className="fst">📦 Reposición</div>
+          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,marginBottom:11}}>
+            <input type="checkbox" checked={f.reposicion} onChange={e=>setF({...f,reposicion:e.target.checked})}/>¿Se han repuesto productos?
+          </label>
+          {f.reposicion&&(
+            <>
+              <div className="cg" style={{marginBottom:12}}>
+                {products.map(p=><div key={p} className={"ci"+(prods[p]?" sel":"")} onClick={()=>toggle(p)}>{prods[p]&&<Icon name="check" size={11}/>} {p}</div>)}
+              </div>
+              {Object.keys(prods).length>0&&<div>
+                <div style={{fontSize:11,color:"var(--mut)",marginBottom:7,fontWeight:600}}>Cantidades:</div>
+                {Object.keys(prods).map(p=>(
+                  <div key={p} className="pr">
+                    <span style={{fontSize:13,flex:1}}>{p}</span>
+                    <input className="qi" type="number" min="1" value={prods[p]} onChange={e=>setProds(prev=>({...prev,[p]:Number(e.target.value)}))}/>
+                    <span style={{fontSize:12,color:"var(--mut)"}}>unid.</span>
+                  </div>
+                ))}
+              </div>}
+            </>
+          )}
+        </div>
+        <div className="fsec">
+          <div className="fst">⚠️ Incidencias</div>
+          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,marginBottom:11}}>
+            <input type="checkbox" checked={f.incidencia} onChange={e=>setF({...f,incidencia:e.target.checked})}/>¿Hay alguna incidencia?
+          </label>
+          {f.incidencia&&<div className="fg"><label>Descripción</label><textarea placeholder="Describe el problema..." value={f.incidenciaDesc} onChange={e=>setF({...f,incidenciaDesc:e.target.value})}/></div>}
+        </div>
+        <button className="btn btn-p" onClick={submit}><Icon name="sync" size={13}/>Guardar y Sincronizar</button>
+      </div></div>
     </div>
   );
 }
 
-function UserModal({ onSubmit, onClose }) {
-  const [f, setF] = useState({ name:"", username:"", password:"", role:"tecnico" });
+function UserModal({ data, onSubmit, onClose }) {
+  const [f, setF] = useState(data ? {name:data.name,username:data.username,password:data.password,role:data.role} : {name:"",username:"",password:"",role:"tecnico"});
   const [err, setErr] = useState("");
-  const submit = () => { if(!f.name||!f.username||!f.password){setErr("Todos los campos son obligatorios");return;} onSubmit(f); };
+  const submit = () => {if(!f.name||!f.username||!f.password){setErr("Todos los campos son obligatorios");return;}onSubmit(f);};
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:440}}>
-        <div className="mh"><div className="mt">Nuevo Usuario</div><button className="btn btn-s" style={{padding:"5px 9px"}} onClick={onClose}><Icon name="close" size={13}/></button></div>
+        <div className="mh"><div className="mt">{data?"Editar Usuario":"Nuevo Usuario"}</div><button className="btn btn-s" style={{padding:"5px 9px"}} onClick={onClose}><Icon name="close" size={13}/></button></div>
         <div className="mb">
           {err&&<div className="err">{err}</div>}
-          <div className="fg"><label>Nombre completo</label><input value={f.name} onChange={e=>setF({...f,name:e.target.value})} /></div>
-          <div className="fg"><label>Usuario</label><input value={f.username} onChange={e=>setF({...f,username:e.target.value})} /></div>
-          <div className="fg"><label>Contraseña</label><input type="password" value={f.password} onChange={e=>setF({...f,password:e.target.value})} /></div>
+          <div className="fg"><label>Nombre completo</label><input value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></div>
+          <div className="fg"><label>Usuario (login)</label><input value={f.username} onChange={e=>setF({...f,username:e.target.value})}/></div>
+          <div className="fg"><label>Contraseña</label><input type="password" value={f.password} onChange={e=>setF({...f,password:e.target.value})}/></div>
           <div className="fg"><label>Rol</label><select value={f.role} onChange={e=>setF({...f,role:e.target.value})}><option value="tecnico">Técnico</option><option value="admin">Administrador</option></select></div>
           <div style={{display:"flex",gap:9,justifyContent:"flex-end"}}>
             <button className="btn btn-s" onClick={onClose}>Cancelar</button>
-            <button className="btn btn-p" onClick={submit}><Icon name="plus" size={13}/>Crear</button>
+            <button className="btn btn-p" onClick={submit}><Icon name="check" size={13}/>{data?"Guardar cambios":"Crear usuario"}</button>
           </div>
         </div>
       </div>
@@ -681,8 +624,74 @@ function UserModal({ onSubmit, onClose }) {
   );
 }
 
-function DetailModal({ visit, onClose }) {
-  const machine = MACHINES.find(m=>m.id===visit.machineId);
+function MachineModal({ data, onSubmit, onClose }) {
+  const [f, setF] = useState(data ? {id:data.id,location:data.location} : {id:"",location:""});
+  const [err, setErr] = useState("");
+  const submit = () => {if(!f.id||!f.location){setErr("Todos los campos son obligatorios");return;}onSubmit(f);};
+  return (
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal" style={{maxWidth:440}}>
+        <div className="mh"><div className="mt">{data?"Editar Máquina":"Nueva Máquina"}</div><button className="btn btn-s" style={{padding:"5px 9px"}} onClick={onClose}><Icon name="close" size={13}/></button></div>
+        <div className="mb">
+          {err&&<div className="err">{err}</div>}
+          <div className="fg"><label>ID de la máquina</label><input placeholder="Ej: VM-006" value={f.id} disabled={!!data} style={data?{opacity:.6}:{}} onChange={e=>setF({...f,id:e.target.value.toUpperCase()})}/></div>
+          <div className="fg"><label>Ubicación</label><input placeholder="Ej: Centro Comercial Norte" value={f.location} onChange={e=>setF({...f,location:e.target.value})}/></div>
+          <div style={{display:"flex",gap:9,justifyContent:"flex-end"}}>
+            <button className="btn btn-s" onClick={onClose}>Cancelar</button>
+            <button className="btn btn-p" onClick={submit}><Icon name="check" size={13}/>{data?"Guardar cambios":"Añadir máquina"}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductsManager({ products, setProducts, notify }) {
+  const [newProd, setNewProd] = useState("");
+  const add = () => {
+    const p = newProd.trim();
+    if(!p) return;
+    if(products.includes(p)){notify("⚠ Ese producto ya existe");return;}
+    setProducts(prev=>[...prev,p]);
+    setNewProd("");
+    notify("Producto añadido correctamente");
+  };
+  const remove = (p) => { if(window.confirm("¿Eliminar producto \""+p+"\"?")) setProducts(prev=>prev.filter(x=>x!==p)); };
+  return (
+    <>
+      <div className="ph"><div className="ph-left"><h2>Productos</h2><p>{products.length} productos en catálogo</p></div></div>
+      <div className="card" style={{marginBottom:18}}>
+        <div className="ch"><div className="ct">Añadir producto</div></div>
+        <div style={{padding:"16px 18px",display:"flex",gap:10,alignItems:"center"}}>
+          <input className="fg" style={{margin:0,flex:1,background:"var(--surf2)",border:"1px solid var(--bdr)",borderRadius:9,padding:"10px 14px",color:"var(--txt)",fontFamily:"var(--font)",fontSize:13,outline:"none"}}
+            placeholder="Nombre del producto, ej: Agua con Limón 50cl"
+            value={newProd} onChange={e=>setNewProd(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&add()}/>
+          <button className="btn btn-p" onClick={add}><Icon name="plus" size={13}/>Añadir</button>
+        </div>
+      </div>
+      <div className="card">
+        <div className="ch"><div className="ct">Catálogo actual</div></div>
+        <div style={{padding:"16px 18px"}}>
+          {products.length===0
+            ? <div style={{color:"var(--mut)",fontSize:13}}>No hay productos. Añade el primero arriba.</div>
+            : <div className="cg">
+                {products.map(p=>(
+                  <div key={p} className="tag">
+                    {p}
+                    <button className="tag-del" onClick={()=>remove(p)} title="Eliminar"><Icon name="close" size={11}/></button>
+                  </div>
+                ))}
+              </div>
+          }
+        </div>
+      </div>
+    </>
+  );
+}
+
+function DetailModal({ visit, machines, onClose }) {
+  const machine = machines.find(m=>m.id===visit.machineId);
   return (
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:500}}>
@@ -695,7 +704,7 @@ function DetailModal({ visit, onClose }) {
             <div className="drow"><span className="dk">Fecha</span><span className="dv">{new Date(visit.createdAt).toLocaleString("es-ES")}</span></div>
             <div className="drow"><span className="dk">Técnico</span><span className="dv" style={{fontWeight:700}}>{visit.techName}</span></div>
             <div className="drow"><span className="dk">Máquina</span><span className="dv" style={{color:"var(--acc)",fontFamily:"var(--mono)"}}>{visit.machineId}</span></div>
-            <div className="drow"><span className="dk">Ubicación</span><span className="dv">{machine?.location}</span></div>
+            <div className="drow"><span className="dk">Ubicación</span><span className="dv">{machine?.location||"—"}</span></div>
           </div>
           <div className="sbox">
             <div style={{fontWeight:700,marginBottom:9,fontSize:13}}>💰 Recaudación</div>
@@ -717,8 +726,7 @@ function DetailModal({ visit, onClose }) {
             </div>
           )}
           <div style={{display:"flex",alignItems:"center",gap:7,padding:"9px 13px",background:"rgba(16,185,129,.05)",borderRadius:7,border:"1px solid rgba(16,185,129,.2)"}}>
-            <div className="dot" style={{animationPlayState:"paused"}} />
-            <span style={{fontSize:12,color:"var(--grn)"}}>Sincronizado con Google Sheets</span>
+            <div className="dot" style={{animationPlayState:"paused"}}/><span style={{fontSize:12,color:"var(--grn)"}}>Sincronizado con Google Sheets</span>
           </div>
         </div>
       </div>
@@ -726,13 +734,13 @@ function DetailModal({ visit, onClose }) {
   );
 }
 
-function SheetsView({ visits }) {
+function SheetsView({ visits, machines }) {
   return (
     <>
       <div className="ph"><div className="ph-left"><h2>Google Sheets</h2><p>Datos sincronizados automáticamente</p></div></div>
       <div className="sync-bar" style={{marginBottom:18}}>
         <div className="dot"/>
-        <div><div style={{fontWeight:600,fontSize:13}}>Hoja conectada</div><div style={{fontSize:11,color:"var(--mut)"}}>Integra Google Sheets API o Apps Script para sincronización real.</div></div>
+        <div><div style={{fontWeight:600,fontSize:13}}>Hoja conectada</div><div style={{fontSize:11,color:"var(--mut)"}}>Cada visita guardada se envía automáticamente a tu hoja.</div></div>
         <div style={{marginLeft:"auto",fontFamily:"var(--mono)",fontSize:22,fontWeight:700,color:"var(--grn)"}}>{visits.length}</div>
       </div>
       <div className="card">
