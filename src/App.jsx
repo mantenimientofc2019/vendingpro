@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { db } from "./firebase";
 import {
   collection, doc, getDocs, setDoc, updateDoc,
-  deleteDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp
+  deleteDoc, addDoc, onSnapshot, query, orderBy
 } from "firebase/firestore";
 
 const SHEETS_URL = "https://script.google.com/macros/s/AKfycbxxxYXTyiRmp85RFpwGmmuUqQsi8UZKueo1asytWdtyuMbU4Oj7JYa3EGrG9Pzf8O9V/exec";
+
+const DEFAULT_CATEGORIES = ["Bebidas frías", "Café e infusiones", "Snacks dulces", "Snacks salados", "Otros"];
 
 const Icon = ({ name, size = 18 }) => {
   const paths = {
@@ -30,6 +32,8 @@ const Icon = ({ name, size = 18 }) => {
     trash: <><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></>,
     box: <><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></>,
     spinner: <><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></>,
+    tag: <><path d="M20.59 13.41L11.41 22.59a2 2 0 01-2.83 0L1 16V4a2 2 0 012-2h12l5.59 5.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></>,
+    chevron: <polyline points="6 9 12 15 18 9"/>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -167,35 +171,49 @@ const css = `
   .tag-del { background:none; border:none; color:var(--mut); cursor:pointer; padding:0; display:flex; align-items:center; transition:color .15s; }
   .tag-del:hover { color:var(--red); }
   .actions { display:flex; gap:6px; }
+  .cat-group { margin-bottom:16px; }
+  .cat-group-title { display:flex; align-items:center; gap:7px; font-size:11px; font-weight:700; color:var(--acc); text-transform:uppercase; letter-spacing:.8px; margin-bottom:9px; padding-bottom:6px; border-bottom:1px solid rgba(0,212,255,.12); }
+  .cat-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:rgba(124,58,237,.12); border:1px solid rgba(124,58,237,.25); border-radius:20px; font-size:11px; color:#a78bfa; font-weight:600; }
+  .cat-pill-del { background:none; border:none; color:#a78bfa; cursor:pointer; padding:0; display:flex; align-items:center; opacity:.7; }
+  .cat-pill-del:hover { opacity:1; color:var(--red); }
 `;
 
 // ── SEED inicial en Firestore si no hay datos ──────────────────────────────
 const SEED_USERS = [
   { username:"admin", password:"admin123", name:"Administrador", role:"admin" },
   { username:"tecnico1", password:"tec123", name:"Carlos Martínez", role:"tecnico" },
-  { username:"tecnico2", password:"tec456", name:"Ana López", role:"tecnico" },
 ];
 const SEED_MACHINES = [
   { id:"VM-001", location:"Oficina Central - Planta 1" },
-  { id:"VM-002", location:"Centro Comercial Sur" },
-  { id:"VM-003", location:"Hospital General" },
 ];
 const SEED_PRODUCTS = [
-  "Agua 50cl","Coca-Cola 33cl","Nestea 33cl","Fanta Naranja 33cl",
-  "Café Solo","Café con Leche","Chocolate","Chips Lay's",
-  "Galletas María","Barrita Energética","Zumo Naranja","Agua con Gas",
+  { nombre:"Agua 50cl", categoria:"Bebidas frías" },
+  { nombre:"Coca-Cola 33cl", categoria:"Bebidas frías" },
+  { nombre:"Nestea 33cl", categoria:"Bebidas frías" },
+  { nombre:"Fanta Naranja 33cl", categoria:"Bebidas frías" },
+  { nombre:"Café Solo", categoria:"Café e infusiones" },
+  { nombre:"Café con Leche", categoria:"Café e infusiones" },
+  { nombre:"Chocolate", categoria:"Café e infusiones" },
+  { nombre:"Chips Lay's", categoria:"Snacks salados" },
+  { nombre:"Galletas María", categoria:"Snacks dulces" },
+  { nombre:"Barrita Energética", categoria:"Snacks dulces" },
+  { nombre:"Zumo Naranja", categoria:"Bebidas frías" },
+  { nombre:"Agua con Gas", categoria:"Bebidas frías" },
 ];
 
 async function seedIfEmpty() {
   const usersSnap = await getDocs(collection(db, "users"));
   if (!usersSnap.empty) return;
-  for (const u of SEED_USERS) {
-    await addDoc(collection(db, "users"), u);
-  }
-  for (const m of SEED_MACHINES) {
-    await setDoc(doc(db, "machines", m.id), { location: m.location });
-  }
+  for (const u of SEED_USERS) await addDoc(collection(db, "users"), u);
+  for (const m of SEED_MACHINES) await setDoc(doc(db, "machines", m.id), { location: m.location });
   await setDoc(doc(db, "config", "products"), { list: SEED_PRODUCTS });
+  await setDoc(doc(db, "config", "categories"), { list: DEFAULT_CATEGORIES });
+}
+
+// Normaliza productos antiguos (string) a {nombre, categoria}
+function normalizeProducts(raw) {
+  if (!raw) return [];
+  return raw.map(p => typeof p === "string" ? { nombre: p, categoria: "Otros" } : p);
 }
 
 export default function App() {
@@ -204,7 +222,8 @@ export default function App() {
   const [visits, setVisits] = useState([]);
   const [users, setUsers] = useState([]);
   const [machines, setMachines] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState([]); // [{nombre, categoria}]
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sbOpen, setSbOpen] = useState(false);
   const [modal, setModal] = useState(null);
@@ -219,27 +238,25 @@ export default function App() {
 
   const notify = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3200); };
 
-  // Cargar datos iniciales desde Firestore
   useEffect(() => {
     seedIfEmpty().then(() => {
-      // Escuchar usuarios
       const unsubUsers = onSnapshot(collection(db, "users"), snap => {
         setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       });
-      // Escuchar máquinas
       const unsubMachines = onSnapshot(collection(db, "machines"), snap => {
         setMachines(snap.docs.map(d => ({ id: d.id, location: d.data().location })).sort((a,b)=>a.id.localeCompare(b.id)));
       });
-      // Escuchar productos
       const unsubProducts = onSnapshot(doc(db, "config", "products"), snap => {
-        if (snap.exists()) setProducts(snap.data().list || []);
+        if (snap.exists()) setProducts(normalizeProducts(snap.data().list));
       });
-      // Escuchar visitas
+      const unsubCategories = onSnapshot(doc(db, "config", "categories"), snap => {
+        setCategories(snap.exists() ? (snap.data().list || DEFAULT_CATEGORIES) : DEFAULT_CATEGORIES);
+      });
       const unsubVisits = onSnapshot(query(collection(db, "visits"), orderBy("createdAt", "desc")), snap => {
         setVisits(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       });
       setLoading(false);
-      return () => { unsubUsers(); unsubMachines(); unsubProducts(); unsubVisits(); };
+      return () => { unsubUsers(); unsubMachines(); unsubProducts(); unsubCategories(); unsubVisits(); };
     });
   }, []);
 
@@ -250,12 +267,9 @@ export default function App() {
       setUser(found);
       setPage(found.role === "admin" ? "dashboard" : "mis-visitas");
       setLoginErr("");
-    } else {
-      setLoginErr("Usuario o contraseña incorrectos");
-    }
+    } else setLoginErr("Usuario o contraseña incorrectos");
     setLoginLoading(false);
   };
-
   const doLogout = () => { setUser(null); setPage("dashboard"); setSbOpen(false); };
 
   const addVisit = async (v) => {
@@ -285,7 +299,6 @@ export default function App() {
     }
   };
 
-  // Gestión usuarios
   const saveUser = async (f, id) => {
     if (id) await updateDoc(doc(db, "users", id), f);
     else await addDoc(collection(db, "users"), f);
@@ -293,13 +306,9 @@ export default function App() {
     notify(id ? "Usuario actualizado" : "Usuario creado");
   };
   const deleteUser = async (id) => {
-    if (window.confirm("¿Eliminar este usuario?")) {
-      await deleteDoc(doc(db, "users", id));
-      notify("Usuario eliminado");
-    }
+    if (window.confirm("¿Eliminar este usuario?")) { await deleteDoc(doc(db, "users", id)); notify("Usuario eliminado"); }
   };
 
-  // Gestión máquinas
   const saveMachine = async (f, id) => {
     if (id) await updateDoc(doc(db, "machines", id), { location: f.location });
     else await setDoc(doc(db, "machines", f.id), { location: f.location });
@@ -307,17 +316,11 @@ export default function App() {
     notify(id ? "Máquina actualizada" : "Máquina añadida");
   };
   const deleteMachine = async (id) => {
-    if (window.confirm("¿Eliminar la máquina "+id+"?")) {
-      await deleteDoc(doc(db, "machines", id));
-      notify("Máquina eliminada");
-    }
+    if (window.confirm("¿Eliminar la máquina "+id+"?")) { await deleteDoc(doc(db, "machines", id)); notify("Máquina eliminada"); }
   };
 
-  // Gestión productos
-  const saveProducts = async (list) => {
-    await setDoc(doc(db, "config", "products"), { list });
-    notify("Productos actualizados");
-  };
+  const saveProducts = async (list) => { await setDoc(doc(db, "config", "products"), { list }); notify("Productos actualizados"); };
+  const saveCategories = async (list) => { await setDoc(doc(db, "config", "categories"), { list }); notify("Categorías actualizadas"); };
 
   if (loading) return (
     <>
@@ -433,7 +436,7 @@ export default function App() {
         {page==="nueva-visita" && user.role==="tecnico" && (
           <>
             <button className="back-btn" onClick={()=>setPage("mis-visitas")}><Icon name="back" size={14}/>Volver a Mis Visitas</button>
-            <VisitForm user={user} machines={machines} products={products} onSubmit={addVisit}/>
+            <VisitForm user={user} machines={machines} products={products} categories={categories} onSubmit={addVisit}/>
           </>
         )}
 
@@ -537,7 +540,7 @@ export default function App() {
         )}
 
         {page==="mgproducts" && user.role==="admin" && (
-          <ProductsManager products={products} onSave={saveProducts} notify={notify}/>
+          <ProductsManager products={products} categories={categories} onSaveProducts={saveProducts} onSaveCategories={saveCategories} notify={notify}/>
         )}
 
         {page==="sheets" && user.role==="admin" && <SheetsView visits={visits} machines={machines}/>}
@@ -590,18 +593,33 @@ function VisitTable({ visits, onView, compact, showTech }) {
   );
 }
 
-function VisitForm({ user, machines, products, onSubmit }) {
+function VisitForm({ user, machines, products, categories, onSubmit }) {
   const [f, setF] = useState({machineId:"",recaudacion:false,importe:"",reposicion:false,incidencia:false,incidenciaDesc:""});
   const [prods, setProds] = useState({});
+  const [openCat, setOpenCat] = useState(null);
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
+
   const toggle = (p) => setProds(prev=>{if(prev[p]){const n={...prev};delete n[p];return n;}return{...prev,[p]:1};});
+
+  // Agrupar productos por categoría
+  const grouped = {};
+  products.forEach(p => {
+    const cat = p.categoria || "Otros";
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(p.nombre);
+  });
+  const orderedCats = categories.filter(c => grouped[c]?.length).concat(
+    Object.keys(grouped).filter(c => !categories.includes(c))
+  );
+
   const submit = async () => {
     if(!f.machineId){setErr("Selecciona una máquina");return;}
     setSaving(true);
     await onSubmit({techId:user.id,techName:user.name,...f,productos:Object.entries(prods).map(([nombre,cantidad])=>({nombre,cantidad}))});
     setSaving(false);
   };
+
   return (
     <div>
       <div className="ph"><div className="ph-left"><h2>Nueva Visita</h2><p>Registra los datos de la visita a la máquina</p></div></div>
@@ -627,17 +645,39 @@ function VisitForm({ user, machines, products, onSubmit }) {
           {f.recaudacion&&<div className="fg" style={{maxWidth:180}}><label>Importe (€)</label><input type="number" min="0" step="0.01" placeholder="0.00" value={f.importe} onChange={e=>setF({...f,importe:e.target.value})}/></div>}
         </div>
         <div className="fsec">
-          <div className="fst">📦 Reposición</div>
+          <div className="fst">📦 Reposición — por categoría</div>
           <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,marginBottom:11}}>
             <input type="checkbox" checked={f.reposicion} onChange={e=>setF({...f,reposicion:e.target.checked})}/>¿Se han repuesto productos?
           </label>
           {f.reposicion&&(
             <>
-              <div className="cg" style={{marginBottom:12}}>
-                {products.map(p=><div key={p} className={"ci"+(prods[p]?" sel":"")} onClick={()=>toggle(p)}>{prods[p]&&<Icon name="check" size={11}/>} {p}</div>)}
-              </div>
-              {Object.keys(prods).length>0&&<div>
-                <div style={{fontSize:11,color:"var(--mut)",marginBottom:7,fontWeight:600}}>Cantidades:</div>
+              {orderedCats.length===0 && <div style={{fontSize:13,color:"var(--mut)",marginBottom:10}}>No hay productos configurados todavía.</div>}
+              {orderedCats.map(cat=>{
+                const isOpen = openCat===cat;
+                const seleccionadosEnCat = grouped[cat].filter(p=>prods[p]).length;
+                return (
+                  <div key={cat} className="cat-group">
+                    <div className="cat-group-title" style={{cursor:"pointer",justifyContent:"space-between",display:"flex"}} onClick={()=>setOpenCat(isOpen?null:cat)}>
+                      <span style={{display:"flex",alignItems:"center",gap:7}}>
+                        <Icon name="tag" size={12}/>{cat}
+                        {seleccionadosEnCat>0 && <span className="badge bb" style={{marginLeft:4}}>{seleccionadosEnCat}</span>}
+                      </span>
+                      <span style={{transform:isOpen?"rotate(180deg)":"none",transition:"transform .15s"}}><Icon name="chevron" size={14}/></span>
+                    </div>
+                    {isOpen && (
+                      <div className="cg" style={{marginBottom:12}}>
+                        {grouped[cat].map(p=>(
+                          <div key={p} className={"ci"+(prods[p]?" sel":"")} onClick={()=>toggle(p)}>
+                            {prods[p]&&<Icon name="check" size={11}/>} {p}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {Object.keys(prods).length>0&&<div style={{marginTop:6}}>
+                <div style={{fontSize:11,color:"var(--mut)",marginBottom:7,fontWeight:600}}>Cantidades a reponer:</div>
                 {Object.keys(prods).map(p=>(
                   <div key={p} className="pr">
                     <span style={{fontSize:13,flex:1}}>{p}</span>
@@ -710,54 +750,130 @@ function MachineModal({ data, onSubmit, onClose }) {
   );
 }
 
-function ProductsManager({ products, onSave, notify }) {
+function ProductsManager({ products, categories, onSaveProducts, onSaveCategories, notify }) {
   const [list, setList] = useState(products);
+  const [cats, setCats] = useState(categories);
   const [newProd, setNewProd] = useState("");
+  const [newProdCat, setNewProdCat] = useState("");
+  const [newCat, setNewCat] = useState("");
 
   useEffect(() => setList(products), [products]);
+  useEffect(() => { setCats(categories); if(!newProdCat && categories.length) setNewProdCat(categories[0]); }, [categories]);
 
-  const add = () => {
-    const p = newProd.trim();
-    if(!p) return;
-    if(list.includes(p)){notify("⚠ Ese producto ya existe");return;}
-    const updated = [...list, p];
-    setList(updated);
-    onSave(updated);
-    setNewProd("");
+  const addCategory = () => {
+    const c = newCat.trim();
+    if (!c) return;
+    if (cats.includes(c)) { notify("⚠ Esa categoría ya existe"); return; }
+    const updated = [...cats, c];
+    setCats(updated);
+    onSaveCategories(updated);
+    setNewCat("");
   };
-  const remove = (p) => {
-    if(window.confirm("¿Eliminar \""+p+"\"?")) {
-      const updated = list.filter(x=>x!==p);
-      setList(updated);
-      onSave(updated);
+  const removeCategory = (c) => {
+    const enUso = list.some(p => p.categoria === c);
+    if (enUso) { notify("⚠ Hay productos usando esa categoría, reasígnalos primero"); return; }
+    if (window.confirm("¿Eliminar la categoría \""+c+"\"?")) {
+      const updated = cats.filter(x=>x!==c);
+      setCats(updated);
+      onSaveCategories(updated);
     }
   };
+
+  const addProduct = () => {
+    const p = newProd.trim();
+    if (!p) return;
+    if (!newProdCat) { notify("⚠ Crea primero una categoría"); return; }
+    if (list.some(x=>x.nombre===p)) { notify("⚠ Ese producto ya existe"); return; }
+    const updated = [...list, { nombre:p, categoria:newProdCat }];
+    setList(updated);
+    onSaveProducts(updated);
+    setNewProd("");
+  };
+  const removeProduct = (nombre) => {
+    if (window.confirm("¿Eliminar \""+nombre+"\"?")) {
+      const updated = list.filter(x=>x.nombre!==nombre);
+      setList(updated);
+      onSaveProducts(updated);
+    }
+  };
+  const changeProductCategory = (nombre, categoria) => {
+    const updated = list.map(x => x.nombre===nombre ? {...x, categoria} : x);
+    setList(updated);
+    onSaveProducts(updated);
+  };
+
+  const grouped = {};
+  list.forEach(p => { const c=p.categoria||"Otros"; if(!grouped[c]) grouped[c]=[]; grouped[c].push(p.nombre); });
+
   return (
     <>
-      <div className="ph"><div className="ph-left"><h2>Productos</h2><p>{list.length} productos en catálogo</p></div></div>
+      <div className="ph"><div className="ph-left"><h2>Productos</h2><p>{list.length} productos en {cats.length} categorías</p></div></div>
+
       <div className="card" style={{marginBottom:18}}>
-        <div className="ch"><div className="ct">Añadir producto</div></div>
-        <div style={{padding:"16px 18px",display:"flex",gap:10,alignItems:"center"}}>
-          <input style={{flex:1,background:"var(--surf2)",border:"1px solid var(--bdr)",borderRadius:9,padding:"10px 14px",color:"var(--txt)",fontFamily:"var(--font)",fontSize:13,outline:"none"}}
-            placeholder="Nombre del producto..."
-            value={newProd} onChange={e=>setNewProd(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&add()}/>
-          <button className="btn btn-p" onClick={add}><Icon name="plus" size={13}/>Añadir</button>
+        <div className="ch"><div className="ct">🏷️ Categorías</div></div>
+        <div style={{padding:"16px 18px"}}>
+          <div style={{display:"flex",gap:10,marginBottom:14}}>
+            <input style={{flex:1,background:"var(--surf2)",border:"1px solid var(--bdr)",borderRadius:9,padding:"10px 14px",color:"var(--txt)",fontFamily:"var(--font)",fontSize:13,outline:"none"}}
+              placeholder="Nueva categoría, ej: Bebidas calientes"
+              value={newCat} onChange={e=>setNewCat(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&addCategory()}/>
+            <button className="btn btn-p" onClick={addCategory}><Icon name="plus" size={13}/>Añadir</button>
+          </div>
+          <div className="cg">
+            {cats.map(c=>(
+              <div key={c} className="cat-pill">
+                {c}
+                <button className="cat-pill-del" onClick={()=>removeCategory(c)} title="Eliminar"><Icon name="close" size={11}/></button>
+              </div>
+            ))}
+            {cats.length===0 && <div style={{fontSize:13,color:"var(--mut)"}}>Crea tu primera categoría arriba.</div>}
+          </div>
         </div>
       </div>
+
+      <div className="card" style={{marginBottom:18}}>
+        <div className="ch"><div className="ct">➕ Añadir producto</div></div>
+        <div style={{padding:"16px 18px",display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+          <input style={{flex:1,minWidth:180,background:"var(--surf2)",border:"1px solid var(--bdr)",borderRadius:9,padding:"10px 14px",color:"var(--txt)",fontFamily:"var(--font)",fontSize:13,outline:"none"}}
+            placeholder="Nombre del producto..."
+            value={newProd} onChange={e=>setNewProd(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&addProduct()}/>
+          <select className="fi" style={{maxWidth:200}} value={newProdCat} onChange={e=>setNewProdCat(e.target.value)}>
+            {cats.map(c=><option key={c} value={c}>{c}</option>)}
+          </select>
+          <button className="btn btn-p" onClick={addProduct}><Icon name="plus" size={13}/>Añadir</button>
+        </div>
+      </div>
+
       <div className="card">
-        <div className="ch"><div className="ct">Catálogo actual</div></div>
+        <div className="ch"><div className="ct">📦 Catálogo por categoría</div></div>
         <div style={{padding:"16px 18px"}}>
-          {list.length===0
+          {Object.keys(grouped).length===0
             ? <div style={{color:"var(--mut)",fontSize:13}}>No hay productos.</div>
-            : <div className="cg">
-                {list.map(p=>(
-                  <div key={p} className="tag">
-                    {p}
-                    <button className="tag-del" onClick={()=>remove(p)} title="Eliminar"><Icon name="close" size={11}/></button>
+            : Object.keys(grouped).sort().map(cat=>(
+                <div key={cat} className="cat-group">
+                  <div className="cat-group-title"><Icon name="tag" size={12}/>{cat} ({grouped[cat].length})</div>
+                  <div className="tw">
+                    <table>
+                      <tbody>
+                        {grouped[cat].map(nombre=>(
+                          <tr key={nombre}>
+                            <td style={{width:"50%"}}>{nombre}</td>
+                            <td>
+                              <select className="fi" style={{maxWidth:170}} value={cat} onChange={e=>changeProductCategory(nombre, e.target.value)}>
+                                {cats.map(c=><option key={c} value={c}>{c}</option>)}
+                              </select>
+                            </td>
+                            <td style={{textAlign:"right"}}>
+                              <button className="btn btn-d" style={{padding:"5px 10px",fontSize:12}} onClick={()=>removeProduct(nombre)}><Icon name="trash" size={12}/></button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
           }
         </div>
       </div>
